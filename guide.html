@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Machinist's Bench — User Guide</title>
+<meta name="description" content="The full user guide to The Machinist's Bench: every tab and reference shelf explained — speeds and feeds, threads, tolerances, scale modelling, and the marks on your tooling.">
+<meta name="theme-color" content="#14161a">
+<link rel="icon" href="icon.png">
+<style>
+  :root{
+    --icon:url("icon.png");
+    --graphite:#14161a;
+    --graphite-2:#1b1e24;
+    --graphite-3:#232831;
+    --steel:#c9cfd7;
+    --steel-bright:#e9edf2;
+    --steel-dim:#8b93a0;
+    --slate:#6f8398;
+    --slate-bright:#8fa6bc;
+    --line:#2c323b;
+    --ink-faint:#5a626e;
+    --amber:#c4964a;
+    --amber-bright:#e8d6ad;
+    --amber-dim:#b08a48;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --wrap:1080px;
+    --pad:clamp(20px,5vw,40px);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--graphite);color:var(--steel);
+    font-family:var(--sans);font-size:16px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 700px at 78% -10%, rgba(111,131,152,.14), transparent 60%),
+      radial-gradient(900px 600px at 0% 100%, rgba(111,131,152,.07), transparent 55%);
+    background-attachment:fixed;
+  }
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  .wrap{max-width:var(--wrap);margin:0 auto;padding-inline:var(--pad)}
+
+  /* ---- header ---- */
+  .bar{position:sticky;top:0;z-index:50;border-bottom:1px solid transparent;transition:background .25s ease,border-color .25s ease}
+  .bar.stuck{background:rgba(18,20,24,.78);backdrop-filter:saturate(140%) blur(12px);-webkit-backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+  .bar-in{display:flex;align-items:center;justify-content:space-between;gap:12px;height:62px;max-width:var(--wrap);margin:0 auto;padding-inline:var(--pad)}
+  .wordmark{display:flex;align-items:center;gap:11px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--steel);text-transform:uppercase}
+  .wm-icon{width:27px;height:27px;background-image:var(--icon);background-size:contain;background-repeat:no-repeat;background-position:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+  .wm-name b{font-weight:700;color:var(--steel-bright)}
+  .bar-nav{display:flex;align-items:center;gap:6px}
+  .bar-link{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--steel-dim);padding:9px 12px;border-radius:8px;transition:color .2s ease,background .2s ease}
+  .bar-link:hover{color:var(--steel-bright);background:rgba(35,40,49,.5)}
+
+  /* ---- buttons ---- */
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.02em;
+    padding:11px 18px;border-radius:9px;cursor:pointer;border:1px solid transparent;transition:transform .15s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:linear-gradient(180deg,var(--slate-bright),#5f7488);color:#0d1013;border-color:#9fb4c8;box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 8px 22px -10px rgba(143,166,188,.6)}
+  .btn-primary:hover{background:linear-gradient(180deg,#a3b8cc,#6c8296)}
+  .btn-ghost{background:rgba(35,40,49,.55);color:var(--steel);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--slate);color:var(--steel-bright)}
+  .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7}
+  :focus-visible{outline:2px solid var(--slate-bright);outline-offset:3px;border-radius:6px}
+
+  /* ---- eyebrow ---- */
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--steel-dim);margin:0 0 18px}
+  .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--slate);display:inline-block}
+
+  /* ---- headings ---- */
+  .h2{font-size:clamp(1.5rem,3.3vw,2.1rem);font-weight:800;letter-spacing:-.018em;color:var(--steel-bright);margin:0 0 16px;text-wrap:balance}
+  .sub{color:var(--steel-dim);max-width:54ch;margin:0}
+
+  /* ---- divider ruler ---- */
+  .divider{border:0;height:14px;margin:0;opacity:.55;
+    background:
+      repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 16px) bottom/100% 7px no-repeat,
+      repeating-linear-gradient(90deg,var(--steel-dim) 0 1px,transparent 1px 80px) bottom/100% 12px no-repeat;}
+
+  /* ---- hero ---- */
+  .ghero{padding-top:clamp(40px,7vw,76px);padding-bottom:6px}
+  .title{font-size:clamp(2.1rem,5.4vw,3.5rem);line-height:1.04;font-weight:800;letter-spacing:-.02em;color:var(--steel-bright);margin:0 0 20px;text-wrap:balance}
+  .title .em{color:var(--slate-bright)}
+  .ghero .lede{font-size:clamp(1.02rem,1.8vw,1.18rem);color:var(--steel-dim);max-width:60ch;margin:0 0 18px}
+  .ghero .lede b{color:var(--steel);font-weight:600}
+  .ghero-note{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--ink-faint);max-width:62ch;margin:0;letter-spacing:.01em}
+
+  /* graduation ruler (signature, shared with home) */
+  .rule{position:relative;height:56px;margin-top:clamp(34px,5vw,50px);border-top:1px solid var(--line)}
+  .tick{position:absolute;top:14px;width:1px;background:var(--line);transform:translateX(-50%)}
+  .tk-min{height:7px}
+  .tk-mid{height:13px;background:var(--steel-dim);opacity:.45}
+  .tk-tall{height:21px;width:1.5px;background:var(--steel-dim);opacity:.85}
+  .tnum{position:absolute;top:40px;transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.03em;white-space:nowrap}
+  .needle{position:absolute;top:9px;width:2px;height:31px;background:var(--slate-bright);transform:translateX(-50%);box-shadow:0 0 12px rgba(143,166,188,.7);will-change:left,opacity}
+  .needle::after{content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid var(--slate-bright)}
+  .nread{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--slate-bright);background:rgba(20,22,26,.92);border:1px solid var(--line);padding:4px 8px;border-radius:6px;letter-spacing:.01em}
+
+  /* ---- contents ---- */
+  .contents-sec{padding-top:clamp(34px,5vw,52px);padding-bottom:6px}
+  .contents{background:var(--graphite-2);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,3vw,28px);box-shadow:0 24px 50px -30px rgba(0,0,0,.7);scroll-margin-top:86px}
+  .ct-h{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--steel-dim);margin:0 0 16px;display:flex;align-items:center;gap:9px}
+  .ct-h::before{content:"";width:22px;height:1.5px;background:var(--slate)}
+  .ct-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:2px}
+  .ct-link{display:flex;gap:14px;align-items:baseline;padding:12px;border-radius:10px;border:1px solid transparent;transition:background .18s ease,border-color .18s ease}
+  .ct-link:hover{background:var(--graphite-3);border-color:var(--line)}
+  .ct-link .n{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--slate);width:1.7em;flex:0 0 auto}
+  .ct-link .t{color:var(--steel);font-weight:600;letter-spacing:-.01em;line-height:1.25}
+  .ct-link:hover .t{color:var(--steel-bright)}
+  .ct-link .t small{display:block;font-weight:400;font-size:12px;color:var(--steel-dim);margin-top:3px;letter-spacing:0}
+
+  /* ---- sections ---- */
+  .gsec{padding-block:clamp(38px,6vw,62px);scroll-margin-top:80px}
+  .gsec-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+  .gsec-num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--slate);border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--graphite-2)}
+  .gsec-eye{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--steel-dim)}
+  .lead{font-size:1.05rem;color:var(--steel);max-width:64ch;margin:0 0 8px;line-height:1.6}
+
+  /* prose */
+  .prose{max-width:70ch}
+  .prose p{margin:0 0 14px;color:var(--steel-dim);line-height:1.66}
+  .prose p:last-child{margin-bottom:0}
+  .term{color:var(--steel-bright);font-weight:600}
+  .prose em{font-style:italic;color:var(--slate-bright)}
+  .rlabel{color:var(--steel-bright);font-weight:700;letter-spacing:-.01em}
+
+  /* subtabs */
+  .subtab{padding-top:clamp(28px,3.6vw,40px);scroll-margin-top:80px}
+  .subtab:first-of-type{padding-top:6px}
+  .subtab-h{font-size:1.2rem;font-weight:700;color:var(--steel-bright);margin:0 0 12px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  .subtab-h .tk{font-family:var(--mono);font-size:1.1rem;color:var(--slate);line-height:1}
+
+  /* row: prose + screenshot */
+  .row{display:grid;grid-template-columns:minmax(0,1fr) 248px;gap:clamp(24px,4vw,44px);align-items:start}
+  .row + .row{margin-top:clamp(26px,3.4vw,40px)}
+
+  /* amber note (matches the app's amber rules-of-thumb) */
+  .note{margin:18px 0 0;padding:13px 16px;border-radius:10px;background:rgba(196,150,74,.08);border:1px solid rgba(196,150,74,.32);border-left:3px solid var(--amber);color:#d9c69b;font-size:.94rem;line-height:1.55;max-width:70ch}
+  .note + .note{margin-top:10px}
+  .note b{color:var(--amber-bright);font-weight:600}
+  .note .nl{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber-dim);margin-bottom:5px}
+
+  /* screenshot frame */
+  .gshot{margin:0;width:248px;max-width:100%}
+  .gshot-frame{background:var(--graphite);border:1px solid var(--line);border-radius:26px;padding:9px;
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 22px 48px -28px rgba(0,0,0,.85),0 0 44px -24px rgba(143,166,188,.18)}
+  .gshot-screen{position:relative;border-radius:18px;overflow:hidden;background:var(--graphite);border:1px solid #0d0f12;height:330px}
+  .gshot-screen img{width:100%;display:block}
+  .gshot-fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(to top,rgba(20,22,26,.96),transparent);pointer-events:none}
+  .gshot figcaption{text-align:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);margin-top:11px}
+  .gshot figcaption a{color:var(--slate)}
+  .gshot figcaption a:hover{color:var(--slate-bright)}
+
+  /* closing */
+  .closing{padding-block:clamp(44px,7vw,72px)}
+  .closing-card{text-align:center;background:
+      radial-gradient(700px 320px at 50% -30%,rgba(143,166,188,.16),transparent 70%),
+      var(--graphite-2);
+    border:1px solid var(--line);border-radius:20px;padding:clamp(36px,5vw,56px) var(--pad)}
+  .closing-card .h2{margin-bottom:12px}
+  .closing-card .sub{margin:0 auto 24px}
+  .closing-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+
+  /* footer */
+  footer{border-top:1px solid var(--line);padding-block:30px;margin-top:8px}
+  .foot{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;letter-spacing:.03em;color:var(--ink-faint)}
+  .foot b{color:var(--steel-dim);font-weight:600}
+  .foot-links{display:flex;gap:18px}
+  .foot-links a{color:var(--ink-faint)}
+  .foot-links a:hover{color:var(--steel-dim)}
+
+  /* back to top */
+  .toplink{position:fixed;right:18px;bottom:18px;z-index:60;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:rgba(35,40,49,.85);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--steel);
+    opacity:0;pointer-events:none;transition:opacity .25s ease,transform .15s ease,border-color .2s ease,color .2s ease}
+  .toplink.show{opacity:1;pointer-events:auto}
+  .toplink:hover{border-color:var(--slate);color:var(--steel-bright)}
+  .toplink:active{transform:translateY(1px)}
+  .toplink svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* responsive */
+  @media (max-width:760px){
+    .row{grid-template-columns:1fr}
+    .gshot{margin:8px auto 0;width:min(280px,86vw)}
+    .gshot-screen{height:300px}
+    .bar-link.opt{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <a class="wordmark" href="index.html" aria-label="The Machinist's Bench, home">
+      <span class="wm-icon" role="img" aria-label="App icon"></span>
+      <span class="wm-name"><b>The Machinist&rsquo;s Bench</b></span>
+    </a>
+    <nav class="bar-nav" aria-label="Guide navigation">
+      <a class="bar-link opt" href="index.html">&larr;&nbsp;Home</a>
+      <a class="bar-link" href="#contents">Contents</a>
+      <a class="btn btn-ghost" href="index.html#get">Open the app</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="ghero">
+    <div class="wrap">
+      <p class="eyebrow">User guide &middot; v4.32</p>
+      <h1 class="title">The Machinist&rsquo;s Bench <span class="em">&mdash; User Guide</span></h1>
+      <p class="lede">A speeds-and-feeds calculator and shop reference built for the phone in your apron pocket. Its working principle is simple: <b>every number comes with the reasoning printed beside it</b>, so the app teaches while it calculates.</p>
+      <p class="ghero-note">// Grounded in published standards and long shop practice &mdash; ASME, ISO, DIN, SAE. The cutting data are starting points for a rigid setup in good condition; your machine, your tooling, and your ears get the final vote.</p>
+      <div class="rule" id="heroRule" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <section class="contents-sec" aria-label="Contents">
+    <div class="wrap">
+      <nav class="contents" id="contents" aria-label="Table of contents">
+        <p class="ct-h">Contents</p>
+        <div class="ct-grid">
+          <a class="ct-link" href="#getting-around"><span class="n">01</span><span class="t">Getting Around<small>The toggle, the chips, the readout</small></span></a>
+          <a class="ct-link" href="#cutting"><span class="n">02</span><span class="t">The Cutting Tabs<small>Turning through Band Saw</small></span></a>
+          <a class="ct-link" href="#converter"><span class="n">03</span><span class="t">Converter<small>Twelve categories, exact factors</small></span></a>
+          <a class="ct-link" href="#shop-math"><span class="n">04</span><span class="t">Shop Math &amp; Layout<small>Sine bar, gauge blocks, fits</small></span></a>
+          <a class="ct-link" href="#scale"><span class="n">05</span><span class="t">Scale<small>Find a scale; engineer a model</small></span></a>
+          <a class="ct-link" href="#threads"><span class="n">06</span><span class="t">Threads<small>196-thread concordance &amp; ID</small></span></a>
+          <a class="ct-link" href="#rose-engine"><span class="n">07</span><span class="t">Rose Engine<small>Rosette geometry &amp; Pattern Lab</small></span></a>
+          <a class="ct-link" href="#reference"><span class="n">08</span><span class="t">Reference<small>Fourteen shop-knowledge shelves</small></span></a>
+          <a class="ct-link" href="#install"><span class="n">09</span><span class="t">On Your Phone<small>Home-screen install, offline</small></span></a>
+          <a class="ct-link" href="#numbers"><span class="n">10</span><span class="t">On the Numbers<small>How the data was settled</small></span></a>
+        </div>
+      </nav>
+    </div>
+  </section>
+
+  <div class="wrap"><hr class="divider"></div>
+
+  <!-- 01 -->
+  <section class="gsec" id="getting-around">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">01</span><span class="gsec-eye">Orientation</span></header>
+      <h2 class="h2">Getting Around</h2>
+      <div class="prose">
+        <p>The top of the screen has two controls that follow you everywhere. The <span class="term">Imperial / Metric</span> toggle flips the whole app: surface speeds switch between SFM and m/min, feeds between inches and millimeters, power between HP and kW, and even the gauge-block solver and sine-bar lengths switch to their metric counterparts. The row of colored <span class="term">section chips</span> chooses the tab, grouped left to right into the cutting calculators, then the calculate-and-measure tools, then the reference shelves, with faint separators between. Once you pick one, the row collapses to just the current section plus an &ldquo;all sections&rdquo; button &mdash; tap that to expand the full list again. The version badge sits by the title; if you report a quirk, mention the number on it.</p>
+        <p>Every calculator presents its inputs in shop order &mdash; the order you&rsquo;d actually decide things at the machine &mdash; and prints its results in a readout block beneath. Collapsible panels hold the longer reference tables so the working surface stays compact.</p>
+        <div class="note"><span class="nl">Amber note</span>Throughout the app, amber notes &mdash; like this one &mdash; carry the warnings and rules of thumb worth keeping in view.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="gsec" id="cutting">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">02</span><span class="gsec-eye">Cutting calculators</span></header>
+      <h2 class="h2">The Cutting Tabs</h2>
+
+      <div class="subtab" id="turning">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Turning</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Turning</span> is the front page: enter diameter, material, and tool, and it returns spindle RPM, feed, removal rate, and power. Surface speed can be edited directly in either unit system, and a lubricant selector applies the appropriate multiplier to the flood-baseline figures. The full speed tables sit in a collapse beneath, organized by material and tool.</p>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="turning.webp" alt="The Machinist's Bench — Turning screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Turning &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="drilling">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Drilling</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Drilling</span> computes speed and feed by drill size and material, then surrounds the hole with its supporting cast: <em>Spot Drill chamfer depth</em> (how deep to plunge a spot drill for a given chamfer), <em>Drill Point Length</em> (the cone you must add to reach through-depth, drawn to the actual point angle), <em>Center Drill countersink depth</em> for between-centers work, <em>Bolt Clearance Holes</em> to ISO 273 close/medium/free fits, and <em>Counterbore</em> dimensions for socket-head cap screws per ASME B18.3.</p>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="drilling.webp" alt="The Machinist's Bench — Drilling screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Drilling &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="milling">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Milling</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Milling</span> starts with end-mill chip load and translates it to table feed. The sub-calculators handle the geometry traps: <em>Ball-Nose True Cutting &Oslash;</em> shows why a shallow cut on a ball mill runs at a much smaller effective diameter (and corrects RPM for it), <em>Scallop / Stepover</em> converts between stepover and cusp height for surfacing, <em>Chamfer Mill</em> gives the engaged diameter at a given depth for any common chamfer angle, and <em>Dovetail &mdash; Cut &amp; Measure</em> handles both halves: cutting dimensions, and measuring over or between precision rods, with the formula, a worked check, and guidance on choosing rod size so it actually contacts the flanks.</p>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="milling.webp" alt="The Machinist's Bench — Milling screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Milling &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="tapping">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Tapping</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Tapping</span> runs in true shop order. Pick the thread and the percent of engagement you want, and it recommends a tap drill from your chosen drill set, then reports the <em>actual</em> percentage that drill yields &mdash; because the nearest stocked drill rarely hits the textbook number. Only then does it ask about material and tap style to give speed. The percent-of-thread relation is explained in the panel.</p>
+            <div class="note"><span class="nl">Rule of thumb</span><b>60&ndash;75&#37; of full thread</b> is plenty for most work.</div>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="tapping.webp" alt="The Machinist's Bench — Tapping screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Tapping &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="threading">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Threading</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Threading</span> covers single-point work end to end: full thread geometry for the selected thread, a compound infeed schedule on the constant-chip-area rule (each pass takes the same work, so the last passes are the lightest), spring-pass guidance, and <em>Three-Wire Measurement</em> with best-wire size and the measurement-over-wires target, in both unit systems.</p>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="threading.webp" alt="The Machinist's Bench — Threading screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Threading &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="boring">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Boring</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Boring</span> gives single-point bar speeds with the overhang rule that governs chatter. The <em>Boring Head</em> panels handle the bench reality: dialing to size (including the radius-versus-diameter trap on the dial &mdash; know which yours reads before you trust it), cutter setup, and using the head for chamfering and facing.</p>
+            <div class="note"><span class="nl">Overhang rule</span>Stick out about <b>four bar diameters</b> for a steel bar, <b>eight or more</b> for carbide. Past that, chatter governs.</div>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="boring.webp" alt="The Machinist's Bench — Boring screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Boring &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="reaming">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Reaming</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Reaming</span> keeps it short: speeds (slower than drilling), feeds (faster than you&rsquo;d guess), and how much stock to leave so the reamer cuts instead of burnishes.</p>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="reaming.webp" alt="The Machinist's Bench — Reaming screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Reaming &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="subtab" id="band-saw">
+        <h3 class="subtab-h"><span class="tk">&rsaquo;</span>Band Saw</h3>
+        <div class="row">
+          <div class="prose">
+            <p><span class="term">Band Saw</span> selects blades by the rule that matters &mdash; keep between 3 and 24 teeth in the cut &mdash; with a pitch chart for solid rounds, tooth-form and set explanations, band speed by material, and how to read the chips to judge feed.</p>
+          </div>
+          <figure class="gshot">
+            <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="bandsaw.webp" alt="The Machinist's Bench — Band Saw screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+            <figcaption><a href="index.html#tour">Band Saw &middot; explore in the tour</a></figcaption>
+          </figure>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="wrap"><hr class="divider"></div>
+
+  <!-- 03 -->
+  <section class="gsec" id="converter">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">03</span><span class="gsec-eye">Conversions</span></header>
+      <h2 class="h2">Converter</h2>
+      <div class="row">
+        <div class="prose">
+          <p>Twelve categories &mdash; length, area, volume, force, speed, flow, energy, power, weight, pressure, and torque among them &mdash; with exact NIST factors. US and imperial measures are labeled separately where they differ (fluid ounces, gallons, hundredweight), which is exactly where conversion mistakes hide.</p>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="converter.webp" alt="The Machinist's Bench — Converter screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Converter &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="gsec" id="shop-math">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">04</span><span class="gsec-eye">Calculate &amp; measure</span></header>
+      <h2 class="h2">Shop Math &amp; Layout</h2>
+      <div class="row">
+        <div class="prose">
+          <p>These two tabs gather the bench-side calculators. The <em>Sine Bar</em> panel computes stack height for any angle and bar length (with the honest note that accuracy degrades below a few degrees), and the <em>Gauge-Block Stack</em> solver builds the stack for you by digit elimination from a full 81-piece inch or 88-piece metric set &mdash; and tells you plainly when a target can&rsquo;t be made from the set rather than pretending. <em>Right-Angle Triangle</em> and <em>Hexagon / Polygon</em> solve the layouts you sketch on scrap. <em>Taper Calculator</em> converts between taper-per-foot, included angle, and end diameters, with the standard machine tapers tabled. <em>Fits &amp; Tolerances</em> computes true ISO 286 limits &mdash; H7/g6, H7/p6, H11/c11 and the rest &mdash; from the standard&rsquo;s own formulas, and <em>Shrink / Interference Fit</em> estimates the temperatures for assembly. <em>Change-Gear / Screwcutting</em> finds gear trains for a target pitch; <em>Dividing Head</em> solves plate-and-turns indexing, including the Holtzapffel plate set for ornamental work; <em>Gear Ratio &amp; Geometry</em> covers the basics of involute pairs.</p>
+          <p>Rounding out the set: <em>Knurling Diameter</em> (sizing the blank so the knurl tracks), <em>Surface Finish</em> (predicted Ra from feed and nose radius &mdash; the feed-squared relationship explains why halving feed quarters roughness), <em>Hardness Conversion</em> across Rockwell, Brinell, and Vickers, <em>Wire &amp; Sheet Gauge</em> tables, <em>Bar Stock Weight</em> for solids and tube, <em>Fastener Torque</em> (SAE Grade 5 and ISO 8.8, dry assembly), and <em>Camera Lens Mounts</em> &mdash; flange registration distances, for the day a lens adapter crosses your bench.</p>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="shopmath.webp" alt="The Machinist's Bench — Shop Math screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Shop Math &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+      <div class="row">
+        <div class="prose">
+          <p>Layout proper holds <em>Bolt Circle Coordinates</em> (a full XY table from any start angle), <em>Straight-Line Bolt Pattern</em>, and <em>Surface Gauge / Height Scriber</em> technique.</p>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="layout.webp" alt="The Machinist's Bench — Layout screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Layout &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="gsec" id="scale">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">05</span><span class="gsec-eye">Models, working &amp; static</span></header>
+      <h2 class="h2">Scale</h2>
+      <p class="lead">The <span class="term">Scale</span> tab is two tools in one, split into <em>find a scale</em> and <em>working-model engineering</em>.</p>
+      <div class="row">
+        <div class="prose">
+          <p><span class="rlabel">Finding a scale.</span> The <em>Scale Converter</em> takes a ratio and a full-size measurement and shows how each quantity shrinks: length divides by N, area by N&sup2;, volume and mass by N&sup3;. That divergence is the whole point &mdash; it prints, for your ratio, how much of the length, area, and volume the model keeps, which is why a working model can&rsquo;t hold the prototype&rsquo;s proportions everywhere. Preset chips load the common modeling scales, and four collapsible reference tables &mdash; <em>model railway</em>, <em>garden / large scale (G)</em>, <em>live-steam ride-on gauges</em>, and <em>kit / military / dollhouse</em> &mdash; let you tap any row to load that ratio into the converter.</p>
+          <div class="note"><span class="nl">Traps worth knowing</span><b>OO is 1:76, not 1:87</b>, though it shares HO&rsquo;s 16.5&nbsp;mm track. <b>&ldquo;G&rdquo; is a gauge, not a single scale</b>: models on the same 45&nbsp;mm rails run anywhere from 1:20.3 to 1:32 depending on the prototype gauge. And ride-on live steam is sized by track gauge in inches-per-foot, with the regional <b>7&frac14;&Prime;/7&frac12;&Prime;</b> split for 1&frac12;&Prime; scale that doesn&rsquo;t interchange.</div>
+          <p>The <em>Cars</em>, <em>Aircraft</em>, and <em>Boats</em> sub-tools do the same job for those domains &mdash; size a model from a full-size dimension, with the standard kit and diecast ratios tabled and honest notes on where a &ldquo;scale&rdquo; is really a racing or RC class rather than a model of anything.</p>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="scale.webp" alt="The Machinist's Bench — Scale screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Scale &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+      <div class="prose" style="margin-top:clamp(22px,3vw,34px)">
+        <p><span class="rlabel">Working-model engineering.</span> These four encode the hard truth a static scale hides: shrink a length by 1/N and you shrink area by 1/N&sup2; and volume and mass by 1/N&sup3;, so a working model is re-engineered, not merely reduced. <em>Scale Speed</em> applies Froude similarity &mdash; the speed that <em>looks</em> right is the prototype speed divided by &radic;N, not N &mdash; and from a full-size driving-wheel diameter it returns the model wheel size and the wheel RPM at that scale speed. <em>Boiler Proportions</em> gives rule-of-thumb starting points (grate area &asymp; piston area &divide; 8, heating surface &asymp; grate &times; ~60) from bore, stroke, rpm, and cylinder count, with the plain warning that these are model-engineering habits, not laws, and that the boiler is the worst square-cube offender: heat loss tracks surface area while steam generation tracks volume, so scale boilers need relatively more heating surface and often higher pressure. <em>Cylinder Power / Steam Rate</em> computes indicated power from PLAN for a double-acting engine plus a rough steam appetite, flagged clearly as an upper bound before friction and transmission losses. And <em>Fastener &amp; Thread Up-size</em> shows the naive &divide;N diameter and then tells you to go oversize from it &mdash; thread strength is shear area, which falls as 1/N&sup2;, so model practice uses the dedicated fine series (BA, ME 40/32 tpi, model metric, all in the Threads concordance) and keeps pressure-part walls relatively thick.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><hr class="divider"></div>
+
+  <!-- 06 -->
+  <section class="gsec" id="threads">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">06</span><span class="gsec-eye">Thread concordance</span></header>
+      <h2 class="h2">Threads</h2>
+      <div class="row">
+        <div class="prose">
+          <p>The <span class="term">Thread Concordance</span> is the deep well: 196 threads across metric coarse and fine, Unified, Whitworth, BSF, British brass and cycle threads, BA in both even and odd numbers, Thury, Model Engineer series, and the specialty survivors. Each entry carries diameter, pitch, and form. <em>Identifying an Unknown Thread</em> is the workflow built on top: measure the outside diameter and the pitch, and it narrows the candidates.</p>
+          <div class="note"><span class="nl">Classic trap</span><b>1/4-28 UNF vs 1/4-26 BSF</b> differ by too little to feel and too much to interchange.</div>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="threads.webp" alt="The Machinist's Bench — Thread Concordance screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Threads &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="gsec" id="rose-engine">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">07</span><span class="gsec-eye">Ornamental turning</span></header>
+      <h2 class="h2">Rose Engine</h2>
+      <div class="row">
+        <div class="prose">
+          <p>The tab opens with a labeled diagram and a plain-language account of how a rose engine works &mdash; a shaped rosette on the spindle, a follower (the rubber) riding its lobed edge, and a fixed cutter tracing the resulting motion into the surface as guilloch&eacute;. The <em>Pattern Lab</em> then draws rosette geometry live: choose a wave shape, lobe count, amplitude, and phase, and watch the pattern a rose engine would cut. The presets include the classics, among them the phased-spike pattern made by recutting at exactly half a lobe &mdash; the lab computes that 180&deg;/N phase shift for you. A glossary covers the ornamental-turning vocabulary &mdash; rosette, rubber, rocking, pumping, phasing, cutting frame, fixed cutter, geometric and eccentric chucks, and the division plate &mdash; and the resources panel links the living institutions of the craft, from the Plumier Foundation to Bill Ooms&rsquo; simulator and rosette mathematics.</p>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="roseengine.webp" alt="The Machinist's Bench — Rose Engine screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Rose Engine &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="gsec" id="reference">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">08</span><span class="gsec-eye">Reference shelves</span></header>
+      <h2 class="h2">Reference</h2>
+      <div class="row">
+        <div class="prose">
+          <p class="lead" style="margin-bottom:0">Fourteen views, grouped here by what you&rsquo;re holding.</p>
+        </div>
+        <figure class="gshot">
+          <div class="gshot-frame"><div class="gshot-screen"><img loading="lazy" src="reference.webp" alt="The Machinist's Bench — Reference screen"><div class="gshot-fade" aria-hidden="true"></div></div></div>
+          <figcaption><a href="index.html#tour">Reference &middot; explore in the tour</a></figcaption>
+        </figure>
+      </div>
+      <div class="prose" style="margin-top:clamp(22px,3vw,32px)">
+        <p><span class="rlabel">Holding a cutting tool.</span> The <em>Inserts</em> page opens with <em>Identify an Insert</em>: type the marking stamped on the one in your hand &mdash; CNMG 432, CCGT 21.51, TNMG 160408 &mdash; and every position decodes live, in both unit systems, with maker suffixes honestly flagged as outside the standard. Below it, the <em>Tool Chooser</em> asks five questions (operation, workpiece, cut, material, machine &mdash; including a midweight 12&times;36 class) and recommends a holder and insert with the reasoning spelled out, plus an ISO 5608 holder-code decoder. Then the insert overview, <em>ISO Grades &amp; Coatings</em>, and <em>Nose Radius</em> (where radius, feed, and finish meet). <em>Tool Styles</em> shows the classic ground-HSS shapes. <em>Drill Sharpening</em> covers point geometry, lip clearance, web thinning, why drills clog, deep-hole speed reductions, and the special handling tiny drills demand. <em>Grinding</em> is the HSS course: four labeled diagrams of the seven angles in grinding order &#9312; through &#9318;, a thirteen-material table of rakes and reliefs, wheel selection and care, and the temper truth (your fingers quit long before high-speed steel does).</p>
+        <div class="note"><span class="nl">The rule that matters most</span>Present the bit with its <b>point on the work centerline</b>.</div>
+        <p style="margin-top:18px"><span class="rlabel">Holding a measuring tool.</span> The <em>Micrometer</em> view teaches the analog mic step by step, the ten-thousandths vernier, the vernier caliper, the inside micrometer, and the habits that keep measurements honest.</p>
+        <p><span class="rlabel">Holding a drawing.</span> <em>Print Symbols</em> opens with <em>Mark Finder</em> &mdash; type any abbreviation, symbol, or standards body (or any word from its meaning) and it filters live through about 120 entries. The symbol cards cover the basic dimensioning marks, and two GD&amp;T panels decode the feature control frame (reading order, datum precedence as fixturing instructions, all the material modifiers including MMC bonus tolerance) and all fourteen characteristic symbols by family, with a note on which two the 2018 standard retired.</p>
+        <p><span class="rlabel">Joining and treating.</span> <em>Loctite</em> matches threadlockers and retainers to the job. <em>Silver Solder</em> covers alloy selection, flux, and joint design for brazing. <em>Heat Treat</em> tables hardening and tempering for the common steels, the tempering-color chart for plain carbon, and annealing temperatures for brass, sterling, and aluminum. <em>Hardness</em> converts between scales. <em>Files</em> explains cross-sections, cut, and technique.</p>
+        <p><span class="rlabel">The traditions.</span> <em>Model Threads</em> covers the ME series alongside Whitworth and BSP context. <em>Steam</em> tables saturated pressure and temperature, with why it matters for live-steam models. <em>Tapers &amp; Collets</em> details Morse tapers (with full dimensions), ER collets per DIN 6499 (including the snap-it-into-the-nut-first rule), and the other workholding tapers. (Ornamental turning, once a Reference view here, now has its own <a href="#rose-engine" style="color:var(--slate-bright)">Rose Engine</a> tab &mdash; diagram, Pattern Lab, glossary, and resources together.)</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><hr class="divider"></div>
+
+  <!-- 09 -->
+  <section class="gsec" id="install">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">09</span><span class="gsec-eye">Install</span></header>
+      <h2 class="h2">Putting It on Your Phone</h2>
+      <div class="prose">
+        <p>The app runs in any modern browser, and an offline kit turns it into a home-screen app: hosted once, opened in Safari, added to the home screen, it then works in airplane mode. The kit&rsquo;s README covers both that path and a Capacitor build for a native install.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="gsec" id="numbers">
+    <div class="wrap">
+      <header class="gsec-head"><span class="gsec-num">10</span><span class="gsec-eye">Provenance</span></header>
+      <h2 class="h2">A Word on the Numbers</h2>
+      <div class="prose">
+        <div class="note" style="margin-top:0"><span class="nl">Where sources disagreed</span>Where a published table and the underlying standard disagreed, <b>the standard won</b>.</div>
+        <p style="margin-top:18px">Cutting data assume rigidity, sharp tools, and sense; start there and adjust by sound and chip. If something looks wrong, it might be &mdash; check it, and report it with the version number. That&rsquo;s how this app got good.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <div class="wrap">
+      <div class="closing-card" data-reveal>
+        <p class="eyebrow" style="justify-content:center">Back to the bench</p>
+        <h2 class="h2">Keep it in your apron pocket</h2>
+        <p class="sub">Open it in any browser, or add it to your home screen and the whole reference runs offline &mdash; right at the machine.</p>
+        <div class="closing-row">
+          <a class="btn btn-primary" href="index.html#get">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            Open the app
+          </a>
+          <a class="btn btn-ghost" href="index.html">&larr; Back to home</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span><b>The Machinist&rsquo;s Bench</b> &middot; User Guide &middot; v4.32</span>
+    <span class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="#contents">Contents</a>
+      <a href="index.html#get">Open the app</a>
+    </span>
+    <span>Made in Northeast Ohio &middot; 2026</span>
+  </div>
+</footer>
+
+<a class="toplink" id="toTop" href="#top" aria-label="Back to top">
+  <svg viewBox="0 0 24 24"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+</a>
+
+<script>
+(function(){
+  /* graduation ruler (shared signature) */
+  var rule=document.getElementById('heroRule');
+  if(rule){
+    var N=40,labels={0:'0',10:'.250',20:'.500',30:'.750',40:'1.000'},i;
+    for(i=0;i<=N;i++){
+      var p=(i/N*100),bar=document.createElement('span');
+      bar.className='tick '+(i%10===0?'tk-tall':(i%5===0?'tk-mid':'tk-min'));
+      bar.style.left=p+'%';rule.appendChild(bar);
+      if(labels[i]!==undefined){
+        var num=document.createElement('span');
+        num.className='tnum';num.style.left=p+'%';num.textContent=labels[i];
+        rule.appendChild(num);
+      }
+    }
+    var needle=document.createElement('span');needle.className='needle';
+    var read=document.createElement('span');read.className='nread';read.textContent='0.7300 in';
+    needle.appendChild(read);rule.appendChild(needle);
+    var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches,target=73;
+    if(reduce){needle.style.left=target+'%';needle.style.opacity=1;}
+    else{
+      needle.style.left='0%';needle.style.opacity=0;
+      requestAnimationFrame(function(){requestAnimationFrame(function(){
+        needle.style.transition='left 1100ms cubic-bezier(.16,.84,.3,1),opacity 500ms ease';
+        needle.style.left=target+'%';needle.style.opacity=1;
+      });});
+    }
+  }
+
+  /* reveal */
+  var reduce2=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce2&&'IntersectionObserver'in window){
+    var els=document.querySelectorAll('[data-reveal]');
+    els.forEach(function(el){el.classList.add('reveal');});
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+    },{threshold:0.12,rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(el){io.observe(el);});
+  }
+
+  /* sticky header + back-to-top */
+  var bar=document.querySelector('.bar');
+  var top=document.getElementById('toTop');
+  function onScroll(){
+    var y=window.scrollY;
+    if(y>12)bar.classList.add('stuck');else bar.classList.remove('stuck');
+    if(top){if(y>620)top.classList.add('show');else top.classList.remove('show');}
+  }
+  onScroll();window.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+</body>
+</html>
