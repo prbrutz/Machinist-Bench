@@ -1,0 +1,19 @@
+{
+  "name": "The Machinist's Bench",
+  "short_name": "Machinist's Bench",
+  "description": "Speeds, feeds, threads, tolerances, and tooling reference for the shop.",
+  "start_url": "./app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14161a",
+  "theme_color": "#14161a",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "540x540",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
