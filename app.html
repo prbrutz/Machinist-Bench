@@ -455,8 +455,8 @@ const CTE = {
   plastic: 90
 };
 const LUBE_OPTS = [["flood", "Flood"], ["oil", "Brushed oil"], ["dry", "Dry"]];
-const COAT_OPTS = [["none", "None"], ["tin", "TiN"], ["ticn", "TiCN"], ["tialn", "TiAlN"], ["alcrn", "AlCrN"]];
-const COAT_F = { none: 1, tin: 1.2, ticn: 1.3, tialn: 1.5, alcrn: 1.6 };
+const COAT_OPTS = [["none", "None"], ["tin", "TiN"], ["ticn", "TiCN"], ["zrn", "ZrN"], ["tialn", "TiAlN"], ["alcrn", "AlCrN"]];
+const COAT_F = { none: 1, tin: 1.2, ticn: 1.3, zrn: 1.25, tialn: 1.5, alcrn: 1.6 };
 const coatFactor = (toolKey, coatKey) => {
   const cf = COAT_F[coatKey] || 1;
   return toolKey === "hss" ? 1 + (cf - 1) * 0.4 : cf;
