@@ -4477,6 +4477,7 @@ function StraightLine({ units }) {
   }, [n, pitchIn, ang, x0In, y0In]);
   const u = units === "met" ? "mm" : "in";
   const dec = units === "met" ? 3 : 4;
+  const toDisp = units === "met" ? (v) => v * 25.4 : (v) => v;
   const VB = 220, pad = 30;
   let view = null;
   if (out) {
@@ -4493,9 +4494,9 @@ function StraightLine({ units }) {
     {
       accent: S.violet,
       cols: ["#", "X", "Y"],
-      rows: out.pts.map((p) => [p.i, p.x.toFixed(dec), p.y.toFixed(dec)])
+      rows: out.pts.map((p) => [p.i, toDisp(p.x).toFixed(dec), toDisp(p.y).toFixed(dec)])
     }
-  ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Grid, { min: 130 }, /* @__PURE__ */ React.createElement(Readout, { label: "Overall Length", value: out.len.toFixed(dec), unit: u, accent: S.green, sub: `${parseInt(n) || 0} holes \xB7 ${Math.max((parseInt(n) || 1) - 1, 0)} spaces` }), /* @__PURE__ */ React.createElement(Readout, { label: "End-to-end \u0394X", value: out.spanX.toFixed(dec), unit: u, accent: S.blue, sub: `\u0394Y ${out.spanY.toFixed(dec)} ${u}` }))))), /* @__PURE__ */ React.createElement(Note, null, "Hole 1 sits at the offset (X, Y); each following hole steps one spacing along the line. Y is up-positive and the angle runs counter-clockwise from +X (0\xB0 = along +X, 90\xB0 = straight up) \u2014 flip the angle sign or the Y offset if your CAM measures Y downward."));
+  ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Grid, { min: 130 }, /* @__PURE__ */ React.createElement(Readout, { label: "Overall Length", value: toDisp(out.len).toFixed(dec), unit: u, accent: S.green, sub: `${parseInt(n) || 0} holes \xB7 ${Math.max((parseInt(n) || 1) - 1, 0)} spaces` }), /* @__PURE__ */ React.createElement(Readout, { label: "End-to-end \u0394X", value: toDisp(out.spanX).toFixed(dec), unit: u, accent: S.blue, sub: `\u0394Y ${toDisp(out.spanY).toFixed(dec)} ${u}` }))))), /* @__PURE__ */ React.createElement(Note, null, "Hole 1 sits at the offset (X, Y); each following hole steps one spacing along the line. Y is up-positive and the angle runs counter-clockwise from +X (0\xB0 = along +X, 90\xB0 = straight up) \u2014 flip the angle sign or the Y offset if your CAM measures Y downward."));
 }
 function BoltCircle({ units }) {
   const [n, setN] = useState("6");
@@ -4517,6 +4518,7 @@ function BoltCircle({ units }) {
   }, [n, bcdIn, x0In, y0In, start]);
   const u = units === "met" ? "mm" : "in";
   const dec = units === "met" ? 3 : 4;
+  const toDisp = units === "met" ? (v) => v * 25.4 : (v) => v;
   const VB = 220, cxv = VB / 2, cyv = VB / 2, rv = VB * 0.36;
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "Bolt Circle Coordinates", accent: S.violet, sub: "X-Y positions around a circle" }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(Field, { label: "# of Holes" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: n, onChange: setN, step: "1", min: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Bolt Circle \xD8", hint: u }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: bcd, onChange: setBcd, step: units === "met" ? "1" : "0.0625" })), /* @__PURE__ */ React.createElement(Field, { label: "Center X", hint: u }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: x0, onChange: setX0, step: units === "met" ? "1" : "0.1" })), /* @__PURE__ */ React.createElement(Field, { label: "Center Y", hint: u }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: y0, onChange: setY0, step: units === "met" ? "1" : "0.1" })), /* @__PURE__ */ React.createElement(Field, { label: "Start Angle", hint: "degrees" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: start, onChange: setStart, step: "5" }))), out && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18, display: "grid", gridTemplateColumns: "minmax(180px,240px) 1fr", gap: 18, alignItems: "start" } }, /* @__PURE__ */ React.createElement("div", { style: { background: S.inset, borderRadius: 12, padding: 10, border: `1px solid ${S.line2}` } }, /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${VB} ${VB}`, style: { width: "100%", display: "block" } }, /* @__PURE__ */ React.createElement("circle", { cx: cxv, cy: cyv, r: rv, fill: "none", stroke: S.line2, strokeWidth: "1", strokeDasharray: "4 3" }), /* @__PURE__ */ React.createElement("line", { x1: cxv - rv - 10, y1: cyv, x2: cxv + rv + 10, y2: cyv, stroke: S.line, strokeWidth: "0.8" }), /* @__PURE__ */ React.createElement("line", { x1: cxv, y1: cyv - rv - 10, x2: cxv, y2: cyv + rv + 10, stroke: S.line, strokeWidth: "0.8" }), out.pts.map((p) => {
     const ang = p.deg * Math.PI / 180;
@@ -4527,9 +4529,9 @@ function BoltCircle({ units }) {
     {
       accent: S.violet,
       cols: ["#", "X", "Y", "Angle"],
-      rows: out.pts.map((p) => [p.i, p.x.toFixed(dec), p.y.toFixed(dec), `${p.deg.toFixed(2)}\xB0`])
+      rows: out.pts.map((p) => [p.i, toDisp(p.x).toFixed(dec), toDisp(p.y).toFixed(dec), `${p.deg.toFixed(2)}\xB0`])
     }
-  ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Readout, { label: "Chord (hole-to-hole)", value: out.chord.toFixed(dec), unit: u, accent: S.green, sub: `radius ${out.r.toFixed(dec)} ${u}` })))), /* @__PURE__ */ React.createElement(Note, null, "Y is measured up-positive (standard math convention). If your CAM treats Y down or measures from a corner, adjust the center X/Y. Angle runs counter-clockwise from the +X axis.")));
+  ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Readout, { label: "Chord (hole-to-hole)", value: toDisp(out.chord).toFixed(dec), unit: u, accent: S.green, sub: `radius ${toDisp(out.r).toFixed(dec)} ${u}` })))), /* @__PURE__ */ React.createElement(Note, null, "Y is measured up-positive (standard math convention). If your CAM treats Y down or measures from a corner, adjust the center X/Y. Angle runs counter-clockwise from the +X axis.")));
 }
 function DividingHead() {
   const [ratio, setRatio] = useState("40");
@@ -6811,8 +6813,8 @@ function App() {
   )))), /* @__PURE__ */ React.createElement("main", { style: { maxWidth: 960, margin: "0 auto", padding: "22px 16px 60px" } }, tab === "turn" && /* @__PURE__ */ React.createElement(Turning, { units }), tab === "drill" && /* @__PURE__ */ React.createElement(DrillingSection, { units }), tab === "mill" && /* @__PURE__ */ React.createElement(MillingSection, { units }), tab === "tap" && /* @__PURE__ */ React.createElement(Tapping, { units }), tab === "thread" && /* @__PURE__ */ React.createElement(Threading, { units }), tab === "bore" && /* @__PURE__ */ React.createElement(BoringSection, { units }), tab === "ream" && /* @__PURE__ */ React.createElement(Reaming, { units }), tab === "saw" && /* @__PURE__ */ React.createElement(BandSawSection, { units }), tab === "conv" && /* @__PURE__ */ React.createElement(Converter, null), tab === "math" && /* @__PURE__ */ React.createElement(ShopMath, { units }), tab === "layout" && /* @__PURE__ */ React.createElement(LayoutSection, { units }), tab === "scale" && /* @__PURE__ */ React.createElement(ScaleSection, { units }), tab === "threads" && /* @__PURE__ */ React.createElement(ThreadFinder, { units }), tab === "rose" && /* @__PURE__ */ React.createElement(RoseEngine, null), tab === "ref" && /* @__PURE__ */ React.createElement(Reference, null)), /* @__PURE__ */ React.createElement("footer", { style: { borderTop: `1px solid ${S.line}`, padding: "18px 16px 30px", maxWidth: 960, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.66rem", color: S.mut, lineHeight: 1.7 } }, "Cutting data, thread geometry, and power constants follow standard machine-shop practice and are starting points, not guarantees \u2014 verify against your machine, tooling, and material, and ease in. Speeds assume sharp tools and adequate lubrication. Built for the home shop and the conservation bench.")));
 }
 
-var _el = document.getElementById('root');
-var _root = ReactDOM.createRoot(_el);
+var _el=document.getElementById('root');
+var _root=ReactDOM.createRoot(_el);
 _root.render(React.createElement(App));
 };
 </script>
