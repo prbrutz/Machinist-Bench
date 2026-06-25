@@ -1,6 +1,6 @@
 /* The Machinist's Bench — offline service worker.
    Bump CACHE (v1 -> v2 -> ...) whenever you upload a new app.html so phones pick up the update. */
-const CACHE = 'machinists-bench-v5';
+const CACHE = 'machinists-bench-v6';
 
 // Same-origin app shell (relative paths so it works under /Machinist-Bench/).
 const SHELL = ['./', './app.html', './icon.png', './manifest.webmanifest'];
