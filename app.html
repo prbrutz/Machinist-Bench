@@ -2798,6 +2798,216 @@ function BandSawSpeed({ units: units2 }) {
     ["Cutting rate", "governed by feed/chip load, not just speed"]
   ] }));
 }
+const JSBLADES = [
+  { grade: "8/0", tpi: 89, thick: 63e-4, depth: 0.0126, drill: "#80" },
+  { grade: "7/0", tpi: 84, thick: 67e-4, depth: 0.0133, drill: "#80" },
+  { grade: "6/0", tpi: 76, thick: 7e-3, depth: 0.014, drill: "#79" },
+  { grade: "5/0", tpi: 71, thick: 8e-3, depth: 0.0157, drill: "#78" },
+  { grade: "4/0", tpi: 66, thick: 85e-4, depth: 0.0175, drill: "#77" },
+  { grade: "3/0", tpi: 61, thick: 95e-4, depth: 0.019, drill: "#76" },
+  { grade: "2/0", tpi: 56, thick: 0.01, depth: 0.0204, drill: "#75" },
+  { grade: "1/0", tpi: 53.5, thick: 0.011, depth: 0.022, drill: "#73" },
+  { grade: "1", tpi: 51, thick: 0.0115, depth: 0.024, drill: "#71" },
+  { grade: "2", tpi: 43, thick: 0.0134, depth: 0.0276, drill: "#70" },
+  { grade: "3", tpi: 40.5, thick: 0.014, depth: 0.029, drill: "#68" },
+  { grade: "4", tpi: 38, thick: 0.015, depth: 0.0307, drill: "#67" },
+  { grade: "5", tpi: 35.5, thick: 0.016, depth: 0.0331, drill: "#65" },
+  { grade: "6", tpi: 33, thick: 0.0173, depth: 0.037, drill: "#58" },
+  { grade: "7", tpi: 30.5, thick: 0.0189, depth: 0.0405, drill: "#57" },
+  { grade: "8", tpi: 28, thick: 0.0197, depth: 0.044, drill: "#55" }
+];
+const BS_GAUGE = [
+  [26, 0.0159],
+  [24, 0.0201],
+  [22, 0.0253],
+  [20, 0.032],
+  [18, 0.0403],
+  [16, 0.0508],
+  [14, 0.0641],
+  [12, 0.0808]
+];
+const JSMAT = {
+  silver: { label: "Silver", lube: "Beeswax or cut lubricant", note: "Sterling and fine silver are soft and easy to cut." },
+  gold: { label: "Gold", lube: "Beeswax or cut lubricant", note: "Very workable. Blades last well at any karat." },
+  plat: { label: "Platinum", lube: "Cut lubricant", note: "Work-hardens quickly \u2014 keep cutting, avoid pausing mid-stroke." },
+  copper: { label: "Copper", lube: "Beeswax or cut lubricant", note: "Gummy \u2014 keep moving and use lubricant to prevent sticking." },
+  brass: { label: "Brass / Bronze", lube: "Beeswax or dry", note: "Clean-cutting. Lubricant optional but extends blade life." },
+  alum: { label: "Aluminium", lube: "Light oil", note: "Clogs fine blades \u2014 step one grade coarser than the chart suggests." },
+  steel: { label: "Mild Steel", lube: "Cut lubricant", note: "Harder on blades. Stay lubricated and use light, steady strokes." },
+  ss: { label: "Stainless", lube: "Cut lubricant", note: "Work-hardens fast \u2014 continuous cutting pressure, no dwelling." }
+};
+function JewelerSaw({ units: units2 }) {
+  const [mat, setMat] = useState("silver");
+  const [thickStr, setThickStr] = useState("");
+  const u2 = units2 === "met" ? "mm" : "in";
+  const dec = units2 === "met" ? 2 : 4;
+  const thickIn = useMemo(() => {
+    const v = parseFloat(thickStr);
+    if (isNaN(v) || v <= 0) return NaN;
+    return units2 === "met" ? v / 25.4 : v;
+  }, [thickStr, units2]);
+  const out = useMemo(() => {
+    var _a;
+    if (isNaN(thickIn) || thickIn <= 0) return null;
+    const BAND_THRESH = 0.118;
+    if (thickIn > BAND_THRESH) return { bandSaw: true };
+    let idx = 0;
+    for (let i = 0; i < JSBLADES.length; i++) {
+      if (JSBLADES[i].tpi * thickIn >= 2) {
+        idx = i;
+        break;
+      }
+      idx = i;
+    }
+    const blade = JSBLADES[idx];
+    const alt = (_a = JSBLADES[idx + 1]) != null ? _a : null;
+    return {
+      bandSaw: false,
+      blade,
+      alt,
+      teeth: blade.tpi * thickIn,
+      thinWarn: blade.tpi * thickIn < 2
+    };
+  }, [thickIn]);
+  const matInfo = JSMAT[mat];
+  const chipBtn = (label, tin) => {
+    const dispVal = units2 === "met" ? (tin * 25.4).toFixed(2) : tin.toFixed(4);
+    const active = Math.abs(thickIn - tin) < 1e-4;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: label,
+        onClick: () => setThickStr(dispVal),
+        style: {
+          padding: "6px 9px",
+          borderRadius: 8,
+          border: `1px solid ${active ? S.teal : S.line2}`,
+          background: active ? "rgba(0,180,180,.13)" : S.inset,
+          color: active ? S.teal : S.mut2,
+          fontFamily: F.mono,
+          fontSize: 10.5,
+          fontWeight: 600,
+          cursor: "pointer",
+          lineHeight: 1.4,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 1
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { color: active ? S.teal : S.steel } }, label),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, opacity: 0.7 } }, units2 === "met" ? (tin * 25.4).toFixed(2) + "mm" : tin.toFixed(4) + '"')
+    );
+  };
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    Panel,
+    {
+      title: "Jeweler's / Piercing Saw \u2014 Blade Selection",
+      accent: S.teal,
+      sub: "handheld frame saw \xB7 sheet metal to ~3 mm solid \xB7 2\u20133 teeth in stock"
+    },
+    /* @__PURE__ */ React.createElement(Grid, { min: 190 }, /* @__PURE__ */ React.createElement(Field, { label: "Material" }, /* @__PURE__ */ React.createElement(
+      Sel,
+      {
+        accent: S.teal,
+        value: mat,
+        onChange: setMat,
+        options: Object.entries(JSMAT).map(([k, v]) => [k, v.label])
+      }
+    )), /* @__PURE__ */ React.createElement(Field, { label: `Metal Thickness (${u2})` }, /* @__PURE__ */ React.createElement(
+      NumIn,
+      {
+        accent: S.teal,
+        value: thickStr,
+        onChange: setThickStr,
+        step: units2 === "met" ? "0.1" : "0.005"
+      }
+    ))),
+    /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      fontFamily: F.mono,
+      fontSize: 10,
+      letterSpacing: ".12em",
+      textTransform: "uppercase",
+      color: S.mut2,
+      marginBottom: 8
+    } }, "B&S Gauge \u2014 precious metal sheet"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, BS_GAUGE.map(([g, tin]) => chipBtn(`${g} B&S`, tin))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontFamily: F.mono, fontSize: 9, color: S.ink, letterSpacing: ".03em" } }, "B&S (Brown & Sharpe) is the US precious-metal gauge standard \u2014 not the same as AWG or sheet-metal gauges.")),
+    out && !out.bandSaw && (() => {
+      const b = out.blade;
+      const thickDisp = units2 === "met" ? (thickIn * 25.4).toFixed(2) : thickIn.toFixed(4);
+      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: 16 } }, /* @__PURE__ */ React.createElement(Grid, { min: 130 }, /* @__PURE__ */ React.createElement(
+        Readout,
+        {
+          big: true,
+          label: "Recommended Grade",
+          value: `Grade ${b.grade}`,
+          unit: "",
+          accent: S.teal,
+          sub: `${b.tpi} TPI \xB7 ${(1 / b.tpi * 25.4).toFixed(3)} mm pitch`
+        }
+      ), out.alt && /* @__PURE__ */ React.createElement(
+        Readout,
+        {
+          label: "Also acceptable",
+          value: `Grade ${out.alt.grade}`,
+          unit: "",
+          accent: S.mut2,
+          sub: `${out.alt.tpi} TPI \xB7 one step coarser`
+        }
+      ), /* @__PURE__ */ React.createElement(
+        Readout,
+        {
+          label: "Teeth in Stock",
+          value: out.teeth.toFixed(1),
+          unit: "",
+          accent: out.thinWarn ? S.amber : S.green,
+          sub: out.thinWarn ? "\u26A0 below ideal \u2014 consider finer blade" : "ideal range 2\u20133"
+        }
+      ), /* @__PURE__ */ React.createElement(
+        Readout,
+        {
+          label: "Pierce-Hole Drill",
+          value: b.drill,
+          unit: "",
+          accent: S.blue,
+          sub: "smallest bit to thread the blade"
+        }
+      )), /* @__PURE__ */ React.createElement(Grid, { min: 130 }, /* @__PURE__ */ React.createElement(
+        Readout,
+        {
+          label: "Blade Width",
+          value: units2 === "met" ? (b.thick * 25.4).toFixed(3) : b.thick.toFixed(4),
+          unit: u2,
+          accent: S.mut2,
+          sub: "body thickness"
+        }
+      ), /* @__PURE__ */ React.createElement(
+        Readout,
+        {
+          label: "Blade Depth",
+          value: units2 === "met" ? (b.depth * 25.4).toFixed(3) : b.depth.toFixed(4),
+          unit: u2,
+          accent: S.mut2,
+          sub: "tooth-to-back"
+        }
+      )), /* @__PURE__ */ React.createElement(Note, null, /* @__PURE__ */ React.createElement("span", { style: { color: S.amber, fontWeight: 700 } }, "Lubricant:"), " ", matInfo.lube, ". ", matInfo.note), out.thinWarn && /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "Stock thinner than 2-tooth engagement \u2014 the blade may chatter or grab. Try one grade finer, or accept that very thin foil is difficult to saw cleanly."));
+    })(),
+    (out == null ? void 0 : out.bandSaw) && /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "At ", units2 === "met" ? (thickIn * 25.4).toFixed(1) + " mm" : thickIn.toFixed(3) + '"', " this stock is above jeweler's saw territory (~3 mm). Switch to the ", /* @__PURE__ */ React.createElement("b", null, "Band Saw"), " tab \u2014 the blade-pitch calculator will guide you from there.")
+  ), /* @__PURE__ */ React.createElement(Collapse, { title: "Using a jeweler's / piercing saw", accent: S.teal }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: ".93rem", color: S.dim, lineHeight: 1.68 } }, /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px" } }, /* @__PURE__ */ React.createElement("b", { style: { color: S.steel } }, "The blade goes in teeth-down, teeth-out."), " The teeth should point toward the handle and away from the frame, so the saw cuts on the ", /* @__PURE__ */ React.createElement("em", null, "pull"), " stroke. Insert one end in the frame clamp and tighten; then brace the frame against your bench peg and snap in the other end under tension. A correctly tensioned blade makes a high-pitched ", /* @__PURE__ */ React.createElement("em", null, "ping"), " when plucked."), /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px" } }, /* @__PURE__ */ React.createElement("b", { style: { color: S.steel } }, "Bench peg."), " Support your work on a bench peg or V-board \u2014 never hold metal in mid-air. The V-notch lets you rotate the work freely while keeping it supported close to the cut line."), /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px" } }, /* @__PURE__ */ React.createElement("b", { style: { color: S.steel } }, "Cutting."), " Use the full length of the blade with a gentle, steady stroke. Let the blade do the work \u2014 forcing it is how blades break. Keep the frame upright; angling loads the blade sideways."), /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px" } }, /* @__PURE__ */ React.createElement("b", { style: { color: S.steel } }, "Turning corners."), " To change direction, saw up and down on the spot without forward pressure, rotating the work in tiny increments until the blade points the new way. Do not twist the frame."), /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px" } }, /* @__PURE__ */ React.createElement("b", { style: { color: S.steel } }, "Interior cuts (piercing)."), " Drill a hole with the drill size shown above, thread the blade through the hole, re-tension in the frame, and saw from inside. The drill must clear the blade body, not just the teeth."), /* @__PURE__ */ React.createElement("p", { style: { margin: "0" } }, "You ", /* @__PURE__ */ React.createElement("em", null, "will"), " break blades \u2014 everyone does. Buy blades by the gross, not the dozen. Quality Swiss blades (Knew Concepts, Super Pike, Herkules) outlast cheap blades significantly."))), /* @__PURE__ */ React.createElement(Collapse, { title: "Full blade specification table", accent: S.teal }, /* @__PURE__ */ React.createElement(
+    SimpleTable,
+    {
+      accent: S.teal,
+      headers: ["Grade", "TPI", units2 === "met" ? "Width mm" : "Width in", units2 === "met" ? "Depth mm" : "Depth in", "Drill", "B&S Gauge"],
+      rows: JSBLADES.map((b) => [
+        b.grade,
+        b.tpi,
+        units2 === "met" ? (b.thick * 25.4).toFixed(3) : b.thick.toFixed(4),
+        units2 === "met" ? (b.depth * 25.4).toFixed(3) : b.depth.toFixed(4),
+        b.drill,
+        b.grade === "8/0" ? "26" : b.grade === "7/0" || b.grade === "6/0" ? "24\u201326" : b.grade === "5/0" || b.grade === "4/0" ? "22\u201324" : b.grade === "3/0" ? "22" : b.grade === "2/0" || b.grade === "1/0" ? "20\u201322" : b.grade === "1" || b.grade === "2" ? "18\u201320" : b.grade === "3" || b.grade === "4" ? "16\u201318" : b.grade === "5" ? "14\u201316" : b.grade === "6" ? "12\u201316" : b.grade === "7" ? "12\u201314" : "12"
+      ])
+    }
+  ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontFamily: F.mono, fontSize: 9, color: S.ink, letterSpacing: ".03em" } }, "Data: Contenti / Herkules White Label. Rule: 2\u20133 teeth in stock at all times. Grade 2/0 is the most commonly used all-around blade.")));
+}
 function BandSawSection({ units: units2 }) {
   const [v, setV] = useState("select");
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
@@ -2807,9 +3017,9 @@ function BandSawSection({ units: units2 }) {
       onChange: setV,
       accent: S.violet,
       size: "sm",
-      options: [["select", "Blade Selection"], ["speed", "Speeds & Feeds"]]
+      options: [["select", "Band Saw"], ["jssaw", "Jeweler's Saw"], ["speed", "Speeds & Feeds"]]
     }
-  )), v === "select" && /* @__PURE__ */ React.createElement(BandSawSelect, { units: units2 }), v === "speed" && /* @__PURE__ */ React.createElement(BandSawSpeed, { units: units2 }));
+  )), v === "select" && /* @__PURE__ */ React.createElement(BandSawSelect, { units: units2 }), v === "jssaw" && /* @__PURE__ */ React.createElement(JewelerSaw, { units: units2 }), v === "speed" && /* @__PURE__ */ React.createElement(BandSawSpeed, { units: units2 }));
 }
 function Reaming({ units: units2 }) {
   const [pick, setPick] = useState("frac");
