@@ -2513,6 +2513,7 @@ const SAW_DIA_PITCH = [
   [1e9, "1.4\u20132", 1.7]
 ];
 const SAW_PITCH_CHART = [
+  ["< 1/16\u2033 (thin sheet/foil)", "24\u201332 const."],
   ["< 1/8\u2033 (sheet/tube)", "18\u201324 const."],
   ["1/8 \u2013 1/4\u2033", "14\u201318"],
   ["1/4 \u2013 1/2\u2033", "10\u201314"],
@@ -2569,22 +2570,34 @@ function BandTeethSVG({ teeth, tone }) {
   const t = isNaN(teeth) ? 0 : teeth;
   const winW = Math.max(7, Math.min(n * pitch - 4, t * pitch));
   const winX = (W - winW) / 2;
+  // Build the full blade tooth profile as a single continuous path
+  // using the same Regular tooth geometry: steep front, long back slope, curved gullet
+  const h = 13, rake = 1.5;
+  let bladePath = `M ${x0} ${baseY}`;
+  for (let i = 0; i < n; i++) {
+    const gx = x0 + i * pitch;
+    const tipX = gx + rake;
+    const tipY = baseY - h;
+    const nx = gx + pitch;
+    bladePath += ` L ${tipX} ${tipY}`;
+    bladePath += ` L ${nx - pitch * 0.12} ${baseY - h * 0.22}`;
+    bladePath += ` Q ${nx - pitch * 0.04} ${baseY + 2.5}, ${nx} ${baseY}`;
+  }
+  // Highlight teeth inside workpiece window with colored fills
   const tri = [];
   for (let i = 0; i < n; i++) {
-    const gx = x0 + i * pitch, tipX = gx + pitch / 2, nx = gx + pitch;
+    const gx = x0 + i * pitch;
+    const tipX = gx + rake;
+    const tipY = baseY - h;
+    const nx = gx + pitch;
     const inside = tipX >= winX - 1 && tipX <= winX + winW + 1;
-    tri.push(/* @__PURE__ */ React.createElement(
-      "path",
-      {
-        key: i,
-        d: `M ${gx} ${baseY} L ${tipX} ${baseY - 13} L ${nx} ${baseY} Z`,
-        fill: inside ? col + "cc" : S.line2,
-        stroke: inside ? col : S.mut,
-        strokeWidth: "1"
-      }
-    ));
+    if (inside) {
+      // filled tooth silhouette for teeth in the cut
+      const d = `M ${gx} ${baseY} L ${tipX} ${tipY} L ${nx - pitch * 0.12} ${baseY - h * 0.22} Q ${nx - pitch * 0.04} ${baseY + 2.5} ${nx} ${baseY} Z`;
+      tri.push(React.createElement("path", { key: i, d, fill: col + "cc", stroke: "none" }));
+    }
   }
-  return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", maxWidth: 340, display: "block", margin: "0 auto" } }, /* @__PURE__ */ React.createElement("rect", { x: x0 - 2, y: baseY, width: n * pitch, height: "10", rx: "2", fill: S.panel2, stroke: S.line2, strokeWidth: "1" }), tri, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", maxWidth: 340, display: "block", margin: "0 auto" } }, /* @__PURE__ */ React.createElement("rect", { x: x0 - 2, y: baseY, width: n * pitch, height: "10", rx: "2", fill: S.panel2, stroke: S.line2, strokeWidth: "1" }), tri, /* @__PURE__ */ React.createElement("path", { d: bladePath, fill: "none", stroke: S.mut, strokeWidth: "1.4", strokeLinejoin: "round", strokeLinecap: "round" }), /* @__PURE__ */ React.createElement(
     "rect",
     {
       x: winX,
@@ -2599,29 +2612,172 @@ function BandTeethSVG({ teeth, tone }) {
   ), /* @__PURE__ */ React.createElement("text", { x: W / 2, y: "17", fill: col, fontFamily: F.mono, fontSize: "9", textAnchor: "middle", fontWeight: "700" }, "workpiece"), /* @__PURE__ */ React.createElement("text", { x: W / 2, y: (22 + baseY) / 2 + 1, fill: col, fontFamily: F.mono, fontSize: "15", fontWeight: "700", textAnchor: "middle", dominantBaseline: "central" }, isNaN(teeth) ? "\u2014" : teeth >= 10 ? Math.round(teeth) : teeth.toFixed(1)), /* @__PURE__ */ React.createElement("text", { x: W / 2, y: (22 + baseY) / 2 + 15, fill: col, fontFamily: F.mono, fontSize: "7.5", textAnchor: "middle" }, "teeth in the cut"), /* @__PURE__ */ React.createElement("text", { x: x0, y: baseY + 22, fill: S.mut, fontFamily: F.mono, fontSize: "8" }, "\u25C4 blade travel \xB7 keep 3\u201324 teeth engaged (6\u201312 ideal) \u25BA"));
 }
 function ToothFormSVG({ rec }) {
-  const row = (x0, pitch, count, rake, gullet, baseY) => {
+  /* Tooth geometry matching real blade CAD profiles.
+     All three share the same fundamental shape:
+       - nearly VERTICAL leading face (front of tooth, faces cut direction)
+       - long gentle SLOPE on the back face down to the gullet
+       - fully ROUNDED U-shaped gullet at the root — never a V-point
+     Differences are in rake angle, gullet depth, and gullet width:
+       Regular: slight positive rake, medium gullet depth, gullet ~40% of pitch
+       Skip:    same tooth, but gullet floor is wide and flat (~60% of pitch open)
+       Hook:    pronounced positive rake (leading face undercuts), very deep gullet */
+  const baseY = 72;
+
+  // Helper: draw one tooth as  |\ curve  where | is the front face,
+  // \  is the back slope, and the bottom is a smooth U arc.
+  // rake > 0 means front face leans forward (positive rake / hook)
+  // r = gullet radius as fraction of tooth height
+  const oneTooth = (gx, p, h, rake, r, d) => {
+    // tip position: front face rises steeply then leans by rake
+    const frontBase = gx;
+    const tipX = frontBase + rake;          // rake shifts tip forward (+) or back (-)
+    const tipY = baseY - h;
+    const nx = gx + p;
+    const gulletR = h * r;                  // radius of the U at the bottom
+
+    // 1. nearly-vertical front face up to tip
+    d += ` L ${tipX} ${tipY}`;
+    // 2. long back slope down toward gullet entry
+    const gulletEntryX = nx - gulletR * 0.9;
+    const gulletEntryY = baseY;
+    d += ` L ${gulletEntryX} ${gulletEntryY}`;
+    // 3. smooth U-curve at the bottom into the next tooth's front face base
+    d += ` Q ${nx} ${baseY + gulletR * 0.7}, ${nx} ${baseY}`;
+    return d;
+  };
+
+  // Regular: slight positive rake, medium gullet (~38% of pitch wide)
+  const rowRegular = (x0, count) => {
+    const p = 17, h = 17, rake = 1.5, r = 0.38;
     let d = `M ${x0} ${baseY}`;
     for (let i = 0; i < count; i++) {
-      const gx = x0 + i * pitch, tipX = gx + pitch * 0.55 + rake, nx = x0 + (i + 1) * pitch;
-      d += ` L ${tipX} ${baseY - gullet} L ${nx} ${baseY}`;
+      d = oneTooth(x0 + i * p, p, h, rake, r, d);
     }
     return d;
   };
-  const cell = (cx, code, label, pitch, rake, gullet) => {
-    const on = rec === code, c = on ? S.violet : S.mut;
-    const baseY = 70, x0 = cx - 32, count = Math.floor(64 / pitch);
-    return /* @__PURE__ */ React.createElement("g", { key: code }, on && /* @__PURE__ */ React.createElement("rect", { x: cx - 44, y: "14", width: "88", height: "86", rx: "9", fill: `${S.violet}14`, stroke: `${S.violet}66`, strokeWidth: "1" }), /* @__PURE__ */ React.createElement("rect", { x: x0 - 2, y: baseY, width: count * pitch + 4, height: "7", rx: "1.5", fill: S.panel2, stroke: c + "88", strokeWidth: "0.8" }), /* @__PURE__ */ React.createElement("path", { d: row(x0, pitch, count, rake, gullet, baseY), fill: "none", stroke: c, strokeWidth: on ? 2 : 1.3, strokeLinejoin: "round" }), /* @__PURE__ */ React.createElement("text", { x: cx, y: "92", fill: c, fontFamily: F.disp, fontSize: "10", fontWeight: "700", textAnchor: "middle", letterSpacing: "0.06em" }, label));
+
+  // Skip: same tooth as Regular, but gullet floor is wide open.
+  // Tooth body is ~35% of pitch; gullet is ~65%, with a flat floor.
+  const rowSkip = (x0, count) => {
+    const p = 22, h = 16, rake = 1.5;
+    const tw = p * 0.35;   // tooth width
+    let d = `M ${x0} ${baseY}`;
+    for (let i = 0; i < count; i++) {
+      const gx = x0 + i * p;
+      const tipX = gx + rake;
+      const tipY = baseY - h;
+      const nx = gx + p;
+      // front face up
+      d += ` L ${tipX} ${tipY}`;
+      // back slope down to end of tooth body
+      d += ` L ${gx + tw} ${baseY}`;
+      // wide flat gullet floor, slightly scooped
+      d += ` Q ${gx + tw + (p - tw) * 0.5} ${baseY + 2.5}, ${nx} ${baseY}`;
+    }
+    return d;
   };
-  return /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 300 110", style: { width: "100%", maxWidth: 340, display: "block", margin: "0 auto" } }, cell(56, "reg", "REGULAR", 15, 0, 16), cell(150, "skip", "SKIP", 24, 0, 22), cell(244, "hook", "HOOK", 22, 9, 24));
+
+  // Hook: positive rake, deep gullet that scoops visibly BELOW the blade body.
+  // The CAD drawing shows: steep front face with slight forward lean,
+  // long back slope, then a deep round U gullet dipping clearly below baseline.
+  const rowHook = (x0, count) => {
+    const p = 19, h = 20, rake = 4;
+    let d = `M ${x0} ${baseY}`;
+    for (let i = 0; i < count; i++) {
+      const gx = x0 + i * p;
+      const tipX = gx + rake;
+      const tipY = baseY - h;
+      const nx = gx + p;
+      // steep front face
+      d += ` L ${tipX} ${tipY}`;
+      // long back slope down to near baseline
+      d += ` L ${nx - p * 0.28} ${baseY - h * 0.08}`;
+      // deep U gullet — control point drops well below baseline
+      d += ` Q ${nx - p * 0.1} ${baseY + 7}, ${nx} ${baseY}`;
+    }
+    return d;
+  };
+
+  const cell = (cx, code, label, rowFn, count) => {
+    const on = rec === code, c = on ? S.violet : S.mut;
+    const x0 = cx - 38;
+    return React.createElement("g", { key: code },
+      on && React.createElement("rect", { x: cx - 46, y: "12", width: "92", height: "88", rx: "9",
+        fill: `${S.violet}14`, stroke: `${S.violet}66`, strokeWidth: "1" }),
+      // blade body bar
+      React.createElement("rect", { x: x0 - 2, y: baseY, width: 76, height: "7", rx: "1.5",
+        fill: S.panel2, stroke: c + "88", strokeWidth: "0.8" }),
+      // tooth path
+      React.createElement("path", { d: rowFn(x0, count), fill: "none", stroke: c,
+        strokeWidth: on ? 2 : 1.4, strokeLinejoin: "round", strokeLinecap: "round" }),
+      React.createElement("text", { x: cx, y: "92", fill: c, fontFamily: F.disp,
+        fontSize: "10", fontWeight: "700", textAnchor: "middle", letterSpacing: "0.06em" }, label)
+    );
+  };
+
+  return React.createElement("svg", { viewBox: "0 0 300 110",
+    style: { width: "100%", maxWidth: 340, display: "block", margin: "0 auto" } },
+    cell(56,  "reg",  "REGULAR", rowRegular, 4),
+    cell(150, "skip", "SKIP",    rowSkip,    3),
+    cell(244, "hook", "HOOK",    rowHook,    3)
+  );
 }
 function BandPitchSVG() {
-  const teeth = (y, xs, c) => xs.map((x, i) => /* @__PURE__ */ React.createElement("path", { key: i, d: `M ${x} ${y} L ${x + 7} ${y - 11} L ${x + 14} ${y} Z`, fill: `${c}cc`, stroke: c, strokeWidth: "0.8" }));
-  const even = [];
-  for (let x = 18; x < 282; x += 22) even.push(x);
-  const vari = [18, 38, 62, 82, 108, 126, 156, 174, 202, 224, 252];
-  return /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 300 116", style: { width: "100%", maxWidth: 340, display: "block", margin: "0 auto" } }, /* @__PURE__ */ React.createElement("text", { x: "6", y: "14", fill: S.mut2, fontFamily: F.mono, fontSize: "8.5", fontWeight: "700" }, "constant pitch"), /* @__PURE__ */ React.createElement("line", { x1: "14", y1: "34", x2: "286", y2: "34", stroke: S.line2, strokeWidth: "1" }), teeth(34, even, S.mut), /* @__PURE__ */ React.createElement("text", { x: "294", y: "48", fill: S.red, fontFamily: F.mono, fontSize: "7.5", textAnchor: "end" }, "one entry frequency \u2192 harmonic hum"), /* @__PURE__ */ React.createElement("text", { x: "6", y: "80", fill: S.violet, fontFamily: F.mono, fontSize: "8.5", fontWeight: "700" }, "variable pitch"), /* @__PURE__ */ React.createElement("line", { x1: "14", y1: "100", x2: "286", y2: "100", stroke: S.line2, strokeWidth: "1" }), teeth(100, vari, S.violet), /* @__PURE__ */ React.createElement("text", { x: "294", y: "114", fill: S.green, fontFamily: F.mono, fontSize: "7.5", textAnchor: "end" }, "spacing varies \u2192 vibration breaks up"));
+  /* KEY PHYSICAL PRINCIPLE: all tooth TIPS are at the same height (the cut line).
+     Larger pitch = deeper gullet below that line.
+     Smaller pitch = shallower gullet below that line.
+     The tip line never varies — it's the cutting plane. */
+  const toothRow = (tipY, pitches, x0, color) => {
+    const rake = 1.2;
+    let d = `M ${x0} ${tipY}`;
+    let x = x0;
+    for (let i = 0; i < pitches.length; i++) {
+      const p = pitches[i];
+      // Gullet depth scales with pitch — bigger tooth = deeper rounded gullet
+      const gulletD = p * 0.52;
+      const gulletY = tipY + gulletD;
+      const nx = x + p;
+      // Back slope: long gentle drop from tip to gullet entry point
+      const slopeEndX = nx - p * 0.38;
+      const slopeEndY = tipY + gulletD * 0.25;
+      d += ` L ${slopeEndX} ${slopeEndY}`;
+      // Rounded U gullet: cubic bezier — control points pull the bottom into a
+      // true semicircle. C cp1x cp1y, cp2x cp2y, endX endY
+      const frontBaseX = nx + rake;
+      d += ` C ${nx - p * 0.12} ${gulletY + gulletD * 0.15},` +
+           ` ${nx + p * 0.12} ${gulletY + gulletD * 0.15},` +
+           ` ${frontBaseX} ${slopeEndY}`;
+      // Steep front face straight up to next tip
+      d += ` L ${frontBaseX} ${tipY}`;
+      x = nx;
+    }
+    return React.createElement("path", { d, fill: "none", stroke: color, strokeWidth: "1.3",
+      strokeLinejoin: "round", strokeLinecap: "round" });
+  };
+
+  // Constant pitch: uniform 20px spacing — all gullets same depth
+  const evenPitches = Array(13).fill(20);
+
+  // Variable pitch: alternating large/small — groups of coarse then fine.
+  // Large teeth (p=26) have deep gullets; small teeth (p=14) have shallow gullets.
+  // ALL tips are still at the same cutting-plane height.
+  const variPitches = [26, 14, 26, 14, 26, 14, 26, 14, 26, 14, 26, 14, 26];
+
+  // tipY is where the tips sit; blade body bar is drawn BELOW the deepest gullet
+  const tipY1 = 26, tipY2 = 88;
+
+  return React.createElement("svg", { viewBox: "0 0 300 120", style: { width: "100%", maxWidth: 340, display: "block", margin: "0 auto" } },
+    React.createElement("text", { x: "6", y: "14", fill: S.mut2, fontFamily: F.mono, fontSize: "8.5", fontWeight: "700" }, "constant pitch"),
+    React.createElement("rect", { x: "14", y: tipY1 + 11 + 2, width: "272", height: "6", rx: "1.5", fill: S.panel2, stroke: S.line2, strokeWidth: "0.8" }),
+    toothRow(tipY1, evenPitches, 14, S.mut),
+    React.createElement("text", { x: "294", y: tipY1 + 24, fill: S.red, fontFamily: F.mono, fontSize: "7.5", textAnchor: "end" }, "one entry frequency → harmonic hum"),
+    React.createElement("text", { x: "6", y: "76", fill: S.violet, fontFamily: F.mono, fontSize: "8.5", fontWeight: "700" }, "variable pitch"),
+    React.createElement("rect", { x: "14", y: tipY2 + 14 + 2, width: "272", height: "6", rx: "1.5", fill: S.panel2, stroke: S.line2, strokeWidth: "0.8" }),
+    toothRow(tipY2, variPitches, 14, S.violet),
+    React.createElement("text", { x: "294", y: "116", fill: S.green, fontFamily: F.mono, fontSize: "7.5", textAnchor: "end" }, "spacing varies → vibration breaks up")
+  );
 }
-function BandSawSelect({ units: units2 }) {
+function BandSawSelect({ units: units2, onSwitchToJeweler }) {
   const [cls, setCls] = useState("steel");
   const [shape, setShape] = useState("solid");
   const [dim, setDim, dimIn] = useConvField(1, units2, { impDec: 3, metDec: 2 });
@@ -2677,7 +2833,7 @@ function BandSawSelect({ units: units2 }) {
       onChange: setShape,
       options: [["solid", "Solid"], ["rect", "Bar / plate"], ["tube", "Tube / struct."]]
     }
-  )), /* @__PURE__ */ React.createElement(Field, { label: dimLabel, hint: u2 }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: dim, onChange: setDim, step: units2 === "met" ? "1" : "0.0625" })), /* @__PURE__ */ React.createElement(Field, { label: "Your Blade Pitch", hint: "TPI \xB7 optional check" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: tpi, onChange: setTpi, step: "1", placeholder: "recommended \u2192" }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" } }, ["6", "10", "14", "18", "24"].map((p) => /* @__PURE__ */ React.createElement("button", { key: p, ...chip(tpi === p, () => setTpi(p)) }, p))))), r && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement(Field, { label: dimLabel, hint: u2 }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: dim, onChange: setDim, step: units2 === "met" ? "1" : "0.0625" })), /* @__PURE__ */ React.createElement(Field, { label: "Your Blade Pitch", hint: "TPI \xB7 optional check" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: tpi, onChange: setTpi, step: "1", placeholder: "recommended \u2192" }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" } }, ["6", "10", "14", "18", "24", "32"].map((p) => /* @__PURE__ */ React.createElement("button", { key: p, ...chip(tpi === p, () => setTpi(p)) }, p))))), r && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(
     Readout,
     {
       big: true,
@@ -2714,7 +2870,25 @@ function BandSawSelect({ units: units2 }) {
       accent: S.blue,
       sub: "coarser than this \u2192 under 3 teeth"
     }
-  ))), r.tone === "bad" && /* @__PURE__ */ React.createElement(Note, { tone: "bad" }, "At ", r.teeth.toFixed(1), " teeth in the cut the blade is straddling the work \u2014 each tooth takes too big a bite and they snap off. Go to a finer pitch (more TPI) until at least 3 teeth are engaged."), r.tone === "warn" && /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, Math.round(r.teeth), " teeth is a lot \u2014 the gullets can't carry the chips, so they pack, overheat and the cut burns or strips. Drop to a coarser pitch (fewer TPI) with bigger gullets."), shape === "tube" && /* @__PURE__ */ React.createElement(Note, null, "For tube and thin structural shapes the WALL governs the pitch, not the outside size \u2014 at entry and exit only the wall is in the cut. Fine pitch and a wavy set keep teeth from snagging the thin edge."))), /* @__PURE__ */ React.createElement(Panel, { title: "Tooth Form & Set", accent: S.violet, sub: "rake, gullet and why variable pitch runs quieter" }, /* @__PURE__ */ React.createElement("div", { style: { background: S.inset, borderRadius: 12, padding: "12px 10px 6px", border: `1px solid ${S.line2}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(ToothFormSVG, { rec: r ? r.formCode : null })), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.body, fontSize: "0.8rem", color: S.mut2, lineHeight: 1.7 } }, /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "Regular / raker"), " (0\xB0 rake) is the general-purpose form for steel, thin material and structural shapes \u2014 controlled cut, good finish.", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, " Skip"), " (0\xB0 rake, wide flat gullet) clears the big soft chips from wood, plastic and soft non-ferrous.", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, " Hook"), " (positive rake, deep gullet) bites aggressively for fast cutting of thick stock, soft metals and resawing."), /* @__PURE__ */ React.createElement("div", { style: { background: S.inset, borderRadius: 12, padding: "12px 10px 4px", border: `1px solid ${S.line2}`, margin: "14px 0 0" } }, /* @__PURE__ */ React.createElement(BandPitchSVG, null)), /* @__PURE__ */ React.createElement(Note, null, "Variable (vari-tooth) pitch \u2014 a 6\u201310 or 8\u201312, say \u2014 mixes tooth spacings along the blade so the teeth don't all enter the cut at one frequency. That breaks up the harmonic vibration of a constant-pitch blade, which means less chatter, a cleaner cut and longer blade life. It also widens the useful thickness range of a single blade, which is why it's the default choice for general work.")), /* @__PURE__ */ React.createElement(FormulaCard, { accent: S.violet, lines: [
+  ))), r.tone === "bad" && /* @__PURE__ */ React.createElement(Note, { tone: "bad" }, "At ", r.teeth.toFixed(1), " teeth in the cut the blade is straddling the work \u2014 each tooth takes too big a bite and they snap off.", " ", r.minTPI >= 18 ? `At this stock size even the finest band saw blades can't keep 3 teeth engaged. This is jeweler's saw territory.` : `Go to a finer pitch (more TPI) until at least 3 teeth are engaged.`, r.minTPI >= 18 && onSwitchToJeweler && /* @__PURE__ */ React.createElement("span", { style: { display: "block", marginTop: 8 } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: onSwitchToJeweler,
+      style: {
+        background: "none",
+        border: `1px solid ${S.teal}`,
+        borderRadius: 8,
+        color: S.teal,
+        fontFamily: F.mono,
+        fontSize: 12,
+        fontWeight: 600,
+        padding: "6px 14px",
+        cursor: "pointer",
+        letterSpacing: ".03em"
+      }
+    },
+    "Switch to Jeweler's Saw \u2192"
+  ))), r.tone === "warn" && /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, Math.round(r.teeth), " teeth is a lot \u2014 the gullets can't carry the chips, so they pack, overheat and the cut burns or strips. Drop to a coarser pitch (fewer TPI) with bigger gullets."), shape === "tube" && /* @__PURE__ */ React.createElement(Note, null, "For tube and thin structural shapes the WALL governs the pitch, not the outside size \u2014 at entry and exit only the wall is in the cut. Fine pitch and a wavy set keep teeth from snagging the thin edge."))), /* @__PURE__ */ React.createElement(Panel, { title: "Tooth Form & Set", accent: S.violet, sub: "rake, gullet and why variable pitch runs quieter" }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.body, fontSize: "0.8rem", color: S.mut2, lineHeight: 1.7 } }, /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "Regular / raker"), " (0\xB0 rake) is the general-purpose form for steel, thin material and structural shapes \u2014 controlled cut, good finish.", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, " Skip"), " (0\xB0 rake, wide flat gullet) clears the big soft chips from wood, plastic and soft non-ferrous.", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, " Hook"), " (positive rake, deep gullet) bites aggressively for fast cutting of thick stock, soft metals and resawing."), /* @__PURE__ */ React.createElement("div", { style: { background: S.inset, borderRadius: 12, padding: "12px 10px 4px", border: `1px solid ${S.line2}`, margin: "14px 0 0" } }, /* @__PURE__ */ React.createElement(BandPitchSVG, null)), /* @__PURE__ */ React.createElement(Note, null, "Variable (vari-tooth) pitch \u2014 a 6\u201310 or 8\u201312, say \u2014 mixes tooth spacings along the blade so the teeth don't all enter the cut at one frequency. That breaks up the harmonic vibration of a constant-pitch blade, which means less chatter, a cleaner cut and longer blade life. It also widens the useful thickness range of a single blade, which is why it's the default choice for general work.")), /* @__PURE__ */ React.createElement(FormulaCard, { accent: S.violet, lines: [
     ["Teeth in the cut", "TPI \xD7 section thickness (in)"],
     ["Keep between", "3 (min) and 24 (max) \u2014 6 to 12 ideal"],
     ["Finest usable TPI", "3 \xF7 thickness"],
@@ -2847,20 +3021,18 @@ function JewelerSaw({ units: units2 }) {
     return units2 === "met" ? v / 25.4 : v;
   }, [thickStr, units2]);
   const out = useMemo(() => {
-    var _a;
     if (isNaN(thickIn) || thickIn <= 0) return null;
     const BAND_THRESH = 0.118;
     if (thickIn > BAND_THRESH) return { bandSaw: true };
-    let idx = 0;
-    for (let i = 0; i < JSBLADES.length; i++) {
+    let bestIdx = 0;
+    for (let i = JSBLADES.length - 1; i >= 0; i--) {
       if (JSBLADES[i].tpi * thickIn >= 2) {
-        idx = i;
+        bestIdx = i;
         break;
       }
-      idx = i;
     }
-    const blade = JSBLADES[idx];
-    const alt = (_a = JSBLADES[idx + 1]) != null ? _a : null;
+    const blade = JSBLADES[bestIdx];
+    const alt = bestIdx > 0 ? JSBLADES[bestIdx - 1] : null;
     return {
       bandSaw: false,
       blade,
@@ -2951,7 +3123,7 @@ function JewelerSaw({ units: units2 }) {
           value: `Grade ${out.alt.grade}`,
           unit: "",
           accent: S.mut2,
-          sub: `${out.alt.tpi} TPI \xB7 one step coarser`
+          sub: `${out.alt.tpi} TPI \xB7 one step finer`
         }
       ), /* @__PURE__ */ React.createElement(
         Readout,
@@ -3019,7 +3191,7 @@ function BandSawSection({ units: units2 }) {
       size: "sm",
       options: [["select", "Band Saw"], ["jssaw", "Jeweler's Saw"], ["speed", "Speeds & Feeds"]]
     }
-  )), v === "select" && /* @__PURE__ */ React.createElement(BandSawSelect, { units: units2 }), v === "jssaw" && /* @__PURE__ */ React.createElement(JewelerSaw, { units: units2 }), v === "speed" && /* @__PURE__ */ React.createElement(BandSawSpeed, { units: units2 }));
+  )), v === "select" && /* @__PURE__ */ React.createElement(BandSawSelect, { units: units2, onSwitchToJeweler: () => setV("jssaw") }), v === "jssaw" && /* @__PURE__ */ React.createElement(JewelerSaw, { units: units2 }), v === "speed" && /* @__PURE__ */ React.createElement(BandSawSpeed, { units: units2 }));
 }
 function Reaming({ units: units2 }) {
   const [pick, setPick] = useState("frac");
@@ -6931,7 +7103,7 @@ function App() {
     borderRadius: 20,
     padding: "1px 8px",
     letterSpacing: "0.06em"
-  } }, "v4.32")), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.64rem", color: S.mut, letterSpacing: "0.05em", marginTop: 1 } }, "speeds \xB7 feeds \xB7 shop reference"))), /* @__PURE__ */ React.createElement(
+  } }, "v4.41")), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.64rem", color: S.mut, letterSpacing: "0.05em", marginTop: 1 } }, "speeds \xB7 feeds \xB7 shop reference"))), /* @__PURE__ */ React.createElement(
     Seg,
     {
       value: units2,
