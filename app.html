@@ -241,6 +241,27 @@ const MAT = {
     fR: 6e-3,
     kp: 1.4
   },
+  s41l40: {
+    n: "41L40 Steel (leaded 4140)",
+    hb: "~200 HB",
+    t: [70, 105],
+    tc: [300, 480],
+    d: [50, 85],
+    dc: [180, 335],
+    m: [50, 85],
+    mc: [240, 455],
+    tp: [18, 30],
+    tpc: [30, 48],
+    b: [60, 95],
+    bc: [240, 455],
+    r: [35, 60],
+    rc: [110, 165],
+    fT: 0.011,
+    fD: 4.5e-3,
+    cl: 2.2e-3,
+    fR: 6.5e-3,
+    kp: 1.4
+  },
   o1: {
     n: "O-1 Tool Steel (annealed)",
     hb: "~190 HB",
@@ -431,7 +452,7 @@ const MAT = {
     kp: 0.1
   }
 };
-const MAT_ORDER = ["alum", "al6061", "brass", "bronze", "castiron", "ductile", "s12l14", "lowc", "medc", "alloy", "o1", "tool", "ss303", "ss304", "ss316", "ss416", "ti", "inconel", "plastic"];
+const MAT_ORDER = ["alum", "al6061", "brass", "bronze", "castiron", "ductile", "s12l14", "lowc", "medc", "alloy", "s41l40", "o1", "tool", "ss303", "ss304", "ss316", "ss416", "ti", "inconel", "plastic"];
 const matOpts = MAT_ORDER.map((k) => [k, MAT[k].n]);
 const CTE = {
   alum: 23,
@@ -444,6 +465,7 @@ const CTE = {
   lowc: 11.7,
   medc: 11.5,
   alloy: 12.3,
+  s41l40: 12.3,
   o1: 12.6,
   tool: 11.5,
   ss303: 17.3,
@@ -989,6 +1011,85 @@ function Turning({ units: units2 }) {
     ["Cutting hp", "Kp \xD7 MRR"],
     ["Motor hp", "Cutting hp \xF7 efficiency"]
   ] }));
+}
+const PART_WIDTHS = [
+  [0.0625, '1/16"'],
+  [0.09375, '3/32"'],
+  [0.125, '1/8"'],
+  [0.15625, '5/32"'],
+  [0.1875, '3/16"'],
+  [0.25, '1/4"']
+];
+const PART_SPEED_F = { hss: 0.5, car: 0.75 };
+const PART_FEED_K = { hss: 0.018, car: 0.028 };
+const PART_FEED_MIN = { hss: 0.001, car: 0.0015 };
+const PART_FEED_MAX = { hss: 0.004, car: 0.007 };
+function partFeedFor(mat, tool, widthIn2) {
+  const matF = MAT[mat].fT / 0.01;
+  const raw = widthIn2 * PART_FEED_K[tool] * matF;
+  return Math.min(PART_FEED_MAX[tool], Math.max(PART_FEED_MIN[tool], raw));
+}
+function Parting({ units: units2 }) {
+  const [mat, setMat] = useState("lowc");
+  const [tool, setTool] = useState("hss");
+  const [width, setWidth, widthIn] = useConvField(0.09375, units2, { impDec: 4 });
+  const [dia, setDia, diaIn] = useConvField(1, units2, { impDec: 3 });
+  const [sfm, setSfm] = useState("120");
+  const [feed, setFeed, feedIpr] = useConvField(0.002, units2, { impDec: 4 });
+  const [lube, setLube] = useState("oil");
+  const rng = tool === "hss" ? MAT[mat].t : MAT[mat].tc;
+  const pf = PART_SPEED_F[tool];
+  const lf = lubeFactor(mat, lube);
+  const rngAdj = [Math.round(rng[0] * pf * lf), Math.round(rng[1] * pf * lf)];
+  useEffect(() => {
+    setSfm(String(Math.round((rng[0] + rng[1]) / 2 * pf * lf)));
+  }, [mat, tool, lube]);
+  useEffect(() => {
+    const w = widthIn();
+    if (isNaN(w) || w <= 0) return;
+    const f = partFeedFor(mat, tool, w);
+    setFeed(units2 === "met" ? (f * 25.4).toFixed(3) : f.toFixed(4));
+  }, [mat, tool, width]);
+  const out = useMemo(() => {
+    const D = diaIn(), Sv = parseFloat(sfm), F2 = feedIpr(), W = widthIn();
+    if ([D, Sv, F2, W].some((v) => isNaN(v) || v <= 0)) return null;
+    const rpm = Sv * 12 / (Math.PI * D);
+    const ipm = rpm * F2;
+    const partTimeMin = D / 2 / ipm;
+    const nearCenterDia = 1.5 * W;
+    return { rpm, ipm, partTimeMin, nearCenterDia };
+  }, [diaIn, sfm, feedIpr, widthIn]);
+  const inRange = out && parseFloat(sfm) >= rngAdj[0] && parseFloat(sfm) <= rngAdj[1];
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "Parting Off", accent: S.red, sub: "blade / insert width \u2192 speed & feed \u2014 HSS or carbide" }, /* @__PURE__ */ React.createElement(Grid, { min: 190 }, /* @__PURE__ */ React.createElement(Field, { label: "Material", hint: MAT[mat].hb }, /* @__PURE__ */ React.createElement(Sel, { accent: S.red, value: mat, onChange: setMat, options: matOpts })), /* @__PURE__ */ React.createElement(Field, { label: "Tool" }, /* @__PURE__ */ React.createElement(Seg, { accent: S.red, value: tool, onChange: setTool, options: [["hss", "HSS"], ["car", "Carbide"]] })), /* @__PURE__ */ React.createElement(Field, { label: "Blade / Insert Width", hint: units2 === "met" ? "mm" : "in" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.red, value: width, onChange: setWidth, step: units2 === "met" ? "0.5" : "0.015625" })), /* @__PURE__ */ React.createElement(Field, { label: "Stock \xD8", hint: units2 === "met" ? "mm" : "in" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.red, value: dia, onChange: setDia, step: units2 === "met" ? "1" : "0.0625" })), /* @__PURE__ */ React.createElement(Field, { label: "Surface Speed", hint: recHint(rngAdj[0], rngAdj[1], units2) }, /* @__PURE__ */ React.createElement(SpeedIn, { accent: S.red, sfm, setSfm, units: units2 })), /* @__PURE__ */ React.createElement(Field, { label: "Feed", hint: units2 === "met" ? "mm/rev \xB7 target" : "in/rev \xB7 target" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.red, value: feed, onChange: setFeed, step: units2 === "met" ? "0.01" : "0.0005" })), /* @__PURE__ */ React.createElement(Field, { label: "Cutting Fluid" }, /* @__PURE__ */ React.createElement(Seg, { accent: S.red, value: lube, onChange: setLube, options: LUBE_OPTS }))), out && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Spindle Speed", value: Math.round(out.rpm).toLocaleString(), unit: "RPM", accent: S.red, sub: `${Math.round(parseFloat(sfm))} SFM \xB7 ${mmin(parseFloat(sfm)).toFixed(0)} m/min` }), /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Feed Rate", value: units2 === "met" ? (out.ipm * 25.4).toFixed(1) : out.ipm.toFixed(3), unit: units2 === "met" ? "mm/min" : "IPM", accent: S.teal, sub: units2 === "met" ? `${out.ipm.toFixed(3)} IPM \xB7 ${(feedIpr() * 25.4).toFixed(3)} mm/rev` : `${(out.ipm * 25.4).toFixed(1)} mm/min \xB7 ${feedIpr().toFixed(4)} ipr` }), /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Time to Part", value: out.partTimeMin < 1 ? (out.partTimeMin * 60).toFixed(0) : out.partTimeMin.toFixed(1), unit: out.partTimeMin < 1 ? "sec" : "min", accent: S.green, sub: "center to center, steady feed" })), /* @__PURE__ */ React.createElement(Note, { tone: inRange ? "good" : "warn" }, inRange ? "\u2714 Surface speed is within the recommended range for this material, tool, and fluid." : `\u26A0 ${parseFloat(sfm) < rngAdj[0] ? "Below" : "Above"} the recommended ${rngAdj[0]}\u2013${rngAdj[1]} SFM \u2014 ${parseFloat(sfm) < rngAdj[0] ? "risk of rubbing, work-hardening, and heat buildup." : "expect chatter, edge chipping, or a snapped blade."}`), /* @__PURE__ */ React.createElement(Note, null, `Ease off within \xD8${units2 === "met" ? (out.nearCenterDia * 25.4).toFixed(1) + " mm" : out.nearCenterDia.toFixed(3) + '"'} of finishing \u2014 once the remaining web drops to roughly 1.5\xD7 the blade width, rigidity falls off fast. Back the feed toward the low end (or hand-feed) rather than pushing through at the programmed rate.`), /* @__PURE__ */ React.createElement(Note, null, lubeNote(mat, lube)), /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "Center height matters more here than in any other lathe op \u2014 even a few thousandths off and the blade rubs on one flank, heats up, and can dig in violently. Keep stickout as short as the cut allows for rigidity, and on deeper cuts peck the feed (back out periodically) rather than plowing straight through \u2014 a packed groove is how blades snap and inserts chip."))), /* @__PURE__ */ React.createElement(Collapse, { title: "Reference \u2014 Parting Widths & Feed", accent: S.red }, /* @__PURE__ */ React.createElement(
+    Table,
+    {
+      accent: S.red,
+      cols: ["Width", "HSS Feed (IPR)", "Carbide Feed (IPR)"],
+      rows: PART_WIDTHS.map(([w, frac]) => [
+        units2 === "met" ? `${(w * 25.4).toFixed(2)} mm` : frac,
+        partFeedFor(mat, "hss", w).toFixed(4),
+        partFeedFor(mat, "car", w).toFixed(4)
+      ])
+    }
+  ), /* @__PURE__ */ React.createElement(Note, null, `Feed scales with width \u2014 a wider blade spreads the cut over more edge and clears chips better, so it tolerates (and needs) a heavier feed than a narrow one. Table above is for ${MAT[mat].n}; switch material in the panel to update it.`), /* @__PURE__ */ React.createElement(Note, null, "Parting speed here runs at 50% of standard HSS turning SFM and 75% of carbide turning SFM for the same material \u2014 poor chip clearance and low tool rigidity in a narrow kerf both call for backing off from a full turning cut. Ease off further still on stainless and superalloys, which work-harden fast if the tool ever rubs instead of cutting.")), /* @__PURE__ */ React.createElement(FormulaCard, { accent: S.red, lines: [
+    ["RPM", "(SFM \xD7 12) \xF7 (\u03C0 \xD7 D)"],
+    ["Feed (IPM)", "RPM \xD7 feed_IPR"],
+    ["Parting SFM", "Turning SFM \xD7 0.5 (HSS) or \xD7 0.75 (carbide)"],
+    ["Feed by width", "width \xD7 k_tool \xD7 (material fT \xF7 0.01)"]
+  ] }));
+}
+function TurningSection({ units: units2 }) {
+  const [v, setV] = useState("turn");
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
+    Seg,
+    {
+      value: v,
+      onChange: setV,
+      accent: S.blue,
+      size: "sm",
+      options: [["turn", "Turning"], ["part", "Parting Off"]]
+    }
+  )), v === "turn" && /* @__PURE__ */ React.createElement(Turning, { units: units2 }), v === "part" && /* @__PURE__ */ React.createElement(Parting, { units: units2 }));
 }
 function Drilling({ units: units2 }) {
   const [mat, setMat] = useState("lowc");
@@ -2163,6 +2264,99 @@ function Threading({ units: units2 }) {
       ]
     }
   ), /* @__PURE__ */ React.createElement(Note, null, "60\xB0 geometry: pitch \xD8 = D \u2212 0.6495p; external minor \xD8 = D \u2212 1.2269p; external thread height = 0.6134p (full sharp-V depth = 0.866p). Compound travel = height \xF7 cos 29.5\xB0.")), /* @__PURE__ */ React.createElement(ThreadToolGauge, null), /* @__PURE__ */ React.createElement(AcmeThreading, { units: units2 }));
+}
+function InternalThreading({ units: units2 }) {
+  const [std, setStd] = useState("unc");
+  const [idx, setIdx] = useState(12);
+  const [midx, setMidx] = useState(8);
+  const [mat, setMat] = useState("lowc");
+  const [tool, setTool] = useState("car");
+  const [dia, setDia, diaIn] = useConvField(0.75, units2, { impDec: 4 });
+  const uL = units2 === "met" ? "mm" : "in";
+  const cL = (v) => units2 === "met" ? (v * 25.4).toFixed(3) : v.toFixed(4);
+  const fmtL = (v) => units2 === "met" ? `${(v * 25.4).toFixed(3)} mm` : `${v.toFixed(4)}\u2033`;
+  const [sfm, setSfm] = useState("90");
+  const [passes, setPasses] = useState("7");
+  const list = std === "metric" ? METRIC : std === "unf" ? UNF : UNC;
+  const i = std === "metric" ? midx : idx;
+  const setI = std === "metric" ? setMidx : setIdx;
+  useEffect(() => {
+    if (std === "metric") setMidx(8);
+    else setIdx(12);
+  }, [std]);
+  useEffect(() => {
+    const r = tool === "hss" ? MAT[mat].t : MAT[mat].tc;
+    setSfm(String(Math.round((r[0] + r[1]) / 2 * 0.65 * 0.8)));
+  }, [mat, tool]);
+  const sel = list[Math.min(i, list.length - 1)];
+  const out = useMemo(() => {
+    const Sv = parseFloat(sfm), D = diaIn(), N = parseInt(passes);
+    if ([Sv, D, N].some((v) => isNaN(v) || v <= 0)) return null;
+    let pitchIn, majorIn, label, pitchTxt;
+    if (std === "metric") {
+      const [lab, pmm, dmm] = sel;
+      pitchIn = pmm / 25.4;
+      majorIn = dmm / 25.4;
+      label = lab;
+      pitchTxt = `${pmm} mm`;
+    } else {
+      const [lab, tpi, maj] = sel;
+      pitchIn = 1 / tpi;
+      majorIn = maj;
+      label = lab;
+      pitchTxt = `${tpi} TPI`;
+    }
+    const rpm = Sv * 12 / (Math.PI * D), lead = pitchIn, ipm = rpm * lead;
+    const height = 0.6134 * pitchIn;
+    const pd = majorIn - 0.6495 * pitchIn;
+    const boreTo = majorIn - 2 * height;
+    const compound = height / Math.cos(29.5 * Math.PI / 180);
+    let prev = 0;
+    const sched = [];
+    for (let n = 1; n <= N; n++) {
+      const cum = height * Math.sqrt(n / N);
+      sched.push({ n, inc: cum - prev, cum, rem: height - cum });
+      prev = cum;
+    }
+    return { rpm, ipm, lead, height, pd, boreTo, compound, sched, label, pitchTxt, majorIn };
+  }, [std, sel, sfm, diaIn, passes, mat]);
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "Internal Threading", accent: S.violet, sub: "60\xB0 internal thread \xB7 bore to minor, cut outward" }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Seg, { value: std, onChange: setStd, accent: S.violet, options: [["unc", "UNC"], ["unf", "UNF"], ["metric", "Metric"]] })), /* @__PURE__ */ React.createElement(Grid, { min: 185 }, /* @__PURE__ */ React.createElement(Field, { label: `Thread (${std.toUpperCase()})` }, /* @__PURE__ */ React.createElement(Sel, { accent: S.violet, value: i, onChange: (v) => setI(+v), options: list.map((r, k) => [k, r[0]]) })), /* @__PURE__ */ React.createElement(Field, { label: "Pitch" }, /* @__PURE__ */ React.createElement(ReadOnly, { accent: S.teal, value: out ? out.pitchTxt : sel[0] })), /* @__PURE__ */ React.createElement(Field, { label: "Bore \xD8", hint: units2 === "met" ? "mm \xB7 at the thread, for RPM" : "in \xB7 at the thread, for RPM" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: dia, onChange: setDia, step: units2 === "met" ? "1" : "0.0625" })), /* @__PURE__ */ React.createElement(Field, { label: "Material" }, /* @__PURE__ */ React.createElement(Sel, { accent: S.violet, value: mat, onChange: setMat, options: matOpts })), /* @__PURE__ */ React.createElement(Field, { label: "Tool" }, /* @__PURE__ */ React.createElement(Seg, { accent: S.violet, value: tool, onChange: setTool, options: [["hss", "HSS"], ["car", "Insert"]] })), /* @__PURE__ */ React.createElement(Field, { label: "Surface Speed", hint: units2 === "met" ? "m/min \xB7 ~52% of turning" : "SFM \xB7 ~52% of turning" }, /* @__PURE__ */ React.createElement(SpeedIn, { accent: S.violet, sfm, setSfm, units: units2 })), /* @__PURE__ */ React.createElement(Field, { label: "Passes" }, /* @__PURE__ */ React.createElement(Sel, { accent: S.violet, value: passes, onChange: setPasses, options: [["5", "5"], ["6", "6"], ["7", "7"], ["8", "8"], ["10", "10"], ["12", "12"], ["14", "14"]] }))), out && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 200 }, /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Bore To (Minor \xD8)", value: cL(out.boreTo), unit: uL, accent: S.violet, sub: "drill/bore here before threading \u2014 tool cuts outward from this wall" })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Grid, { min: 140 }, /* @__PURE__ */ React.createElement(Readout, { label: "Spindle Speed", value: Math.round(out.rpm).toLocaleString(), unit: "RPM", accent: S.violet }), /* @__PURE__ */ React.createElement(Readout, { label: "Lead / Feed", value: units2 === "met" ? (out.lead * 25.4).toFixed(3) : out.lead.toFixed(4), unit: units2 === "met" ? "mm/rev" : "in/rev", accent: S.teal, sub: units2 === "met" ? `${(out.ipm * 25.4).toFixed(0)} mm/min equiv.` : `${out.ipm.toFixed(2)} IPM equiv.` }), /* @__PURE__ */ React.createElement(Readout, { label: "Thread Height (radial)", value: cL(out.height), unit: uL, accent: S.amber, sub: "UN internal \xB7 0.6134\xD7p" }), /* @__PURE__ */ React.createElement(Readout, { label: "Compound @ 29.5\xB0", value: cL(out.compound), unit: uL, accent: S.orange, sub: "dial travel along compound" })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(Grid, { min: 140 }, /* @__PURE__ */ React.createElement(Readout, { label: "Pitch \xD8", value: cL(out.pd), unit: uL, accent: S.blue }), /* @__PURE__ */ React.createElement(Readout, { label: "Major \xD8 (finished)", value: cL(out.majorIn), unit: uL, accent: S.mut2 })))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.disp, fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: S.violet, marginBottom: 8 } }, "Infeed Schedule \u2014 constant chip area"), /* @__PURE__ */ React.createElement(
+    Table,
+    {
+      accent: S.violet,
+      cols: ["Pass", "Radial infeed", "Compound 29.5\xB0", "Cum. depth"],
+      rows: out.sched.map((p) => [`${p.n} of ${out.sched.length}`, fmtL(p.inc), fmtL(p.inc / Math.cos(29.5 * Math.PI / 180)), fmtL(p.cum)])
+    }
+  ), /* @__PURE__ */ React.createElement(Note, null, "Same constant-chip-area logic as external \u2014 decreasing increments keep the cutting load even as the bar gets less rigid deeper into the cut. Compound still set at 29.5\xB0 so only the leading flank cuts; the tool now cuts outward, toward the bore wall, rather than inward. Finish with one or two spring passes."))), out && /* @__PURE__ */ React.createElement(Collapse, { title: "Checking the Thread", accent: S.teal }, /* @__PURE__ */ React.createElement(Note, null, "Internal threads are almost always checked with a go/no-go thread plug gauge rather than wires \u2014 the go gauge should thread in by hand to full depth, the no-go should not start. No gauge on hand? Thread a test piece of scrap to the same bore \xD8 and check fit with the actual mating part before committing to the real one."), /* @__PURE__ */ React.createElement(Note, null, "Three-wire measurement works on internal threads in principle, but needs a point-anvil (internal) micrometer or a bore mic with wire attachments \u2014 uncommon outside a metrology lab. Not included here for that reason.")), /* @__PURE__ */ React.createElement(Collapse, { title: "Reference \u2014 Internal Threading Guidance", accent: S.violet }, /* @__PURE__ */ React.createElement(
+    Table,
+    {
+      accent: S.violet,
+      cols: ["Material", "HSS SFM", "Carbide SFM", "Typical Passes"],
+      rows: [
+        ["Aluminum", "65\u201395", "160\u2013280", "5\u20137"],
+        ["Brass / Bronze", "55\u201380", "120\u2013225", "5\u20137"],
+        ["Cast iron", "30\u201350", "80\u2013145", "6\u20139"],
+        ["Mild steel", "40\u201365", "105\u2013175", "7\u20139"],
+        ["Alloy steel", "30\u201348", "80\u2013145", "9\u201311"],
+        ["Stainless", "20\u201335", "65\u2013120", "9\u201313"],
+        ["Titanium", "10\u201324", "40\u201380", "11\u201315"],
+        ["Plastic", "65\u2013120", "120\u2013200", "4\u20135"]
+      ]
+    }
+  ), /* @__PURE__ */ React.createElement(Note, null, "60\xB0 geometry (internal): bore-to (minor) \xD8 = D \u2212 1.2269p; pitch \xD8 = D \u2212 0.6495p; thread height = 0.6134p, cut outward from the bore wall as depth increases \u2014 D is the finished major \xD8. Compound travel = height \xF7 cos 29.5\xB0."), /* @__PURE__ */ React.createElement(Note, null, "Rigidity is the whole game here \u2014 a boring bar cantilevered into a hole flexes far more than an external holder ever will. Use the largest-diameter bar the bore allows, keep stickout to the minimum that reaches full depth, and if you get chatter, drop speed a step before changing anything else. Most indexable internal threading bars need roughly 3\u20134\xD7 the pitch in bore clearance to fit the insert and shank; smaller than that, a custom-ground HSS bar is often the only option."), /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "Blind hole: bore or drill a few thousandths past full thread depth at the bottom before threading \u2014 the tool needs somewhere to run out, since it can't run off the end the way an external tool does. Watch the compound feed dial closely and back out at the same mark every pass."))));
+}
+function ThreadingSection({ units: units2 }) {
+  const [v, setV] = useState("ext");
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
+    Seg,
+    {
+      value: v,
+      onChange: setV,
+      accent: S.green,
+      size: "sm",
+      options: [["ext", "External"], ["int", "Internal"]]
+    }
+  )), v === "ext" && /* @__PURE__ */ React.createElement(Threading, { units: units2 }), v === "int" && /* @__PURE__ */ React.createElement(InternalThreading, { units: units2 }));
 }
 function GaugeCenterSVG() {
   const metal = "#c4cad3", edge = "#8a93a3", eng = "#3f4757", yt = 30, yb = 150;
@@ -7196,7 +7390,7 @@ function App() {
       }
     },
     "\u25BE all sections"
-  )))), /* @__PURE__ */ React.createElement("main", { style: { maxWidth: 960, margin: "0 auto", padding: "22px 16px 60px" } }, tab === "turn" && /* @__PURE__ */ React.createElement(Turning, { units: units2 }), tab === "drill" && /* @__PURE__ */ React.createElement(DrillingSection, { units: units2 }), tab === "mill" && /* @__PURE__ */ React.createElement(MillingSection, { units: units2 }), tab === "tap" && /* @__PURE__ */ React.createElement(Tapping, { units: units2 }), tab === "thread" && /* @__PURE__ */ React.createElement(Threading, { units: units2 }), tab === "bore" && /* @__PURE__ */ React.createElement(BoringSection, { units: units2 }), tab === "ream" && /* @__PURE__ */ React.createElement(Reaming, { units: units2 }), tab === "saw" && /* @__PURE__ */ React.createElement(BandSawSection, { units: units2 }), tab === "conv" && /* @__PURE__ */ React.createElement(Converter, null), tab === "math" && /* @__PURE__ */ React.createElement(ShopMath, { units: units2 }), tab === "layout" && /* @__PURE__ */ React.createElement(LayoutSection, { units: units2 }), tab === "scale" && /* @__PURE__ */ React.createElement(ScaleSection, { units: units2 }), tab === "threads" && /* @__PURE__ */ React.createElement(ThreadFinder, { units: units2 }), tab === "rose" && /* @__PURE__ */ React.createElement(RoseEngine, null), tab === "ref" && /* @__PURE__ */ React.createElement(Reference, null)), /* @__PURE__ */ React.createElement("footer", { style: { borderTop: `1px solid ${S.line}`, padding: "18px 16px 30px", maxWidth: 960, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.66rem", color: S.mut, lineHeight: 1.7 } }, "Cutting data, thread geometry, and power constants follow standard machine-shop practice and are starting points, not guarantees \u2014 verify against your machine, tooling, and material, and ease in. Speeds assume sharp tools and adequate lubrication. Built for the home shop and the conservation bench.")));
+  )))), /* @__PURE__ */ React.createElement("main", { style: { maxWidth: 960, margin: "0 auto", padding: "22px 16px 60px" } }, tab === "turn" && /* @__PURE__ */ React.createElement(TurningSection, { units: units2 }), tab === "drill" && /* @__PURE__ */ React.createElement(DrillingSection, { units: units2 }), tab === "mill" && /* @__PURE__ */ React.createElement(MillingSection, { units: units2 }), tab === "tap" && /* @__PURE__ */ React.createElement(Tapping, { units: units2 }), tab === "thread" && /* @__PURE__ */ React.createElement(ThreadingSection, { units: units2 }), tab === "bore" && /* @__PURE__ */ React.createElement(BoringSection, { units: units2 }), tab === "ream" && /* @__PURE__ */ React.createElement(Reaming, { units: units2 }), tab === "saw" && /* @__PURE__ */ React.createElement(BandSawSection, { units: units2 }), tab === "conv" && /* @__PURE__ */ React.createElement(Converter, null), tab === "math" && /* @__PURE__ */ React.createElement(ShopMath, { units: units2 }), tab === "layout" && /* @__PURE__ */ React.createElement(LayoutSection, { units: units2 }), tab === "scale" && /* @__PURE__ */ React.createElement(ScaleSection, { units: units2 }), tab === "threads" && /* @__PURE__ */ React.createElement(ThreadFinder, { units: units2 }), tab === "rose" && /* @__PURE__ */ React.createElement(RoseEngine, null), tab === "ref" && /* @__PURE__ */ React.createElement(Reference, null)), /* @__PURE__ */ React.createElement("footer", { style: { borderTop: `1px solid ${S.line}`, padding: "18px 16px 30px", maxWidth: 960, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.66rem", color: S.mut, lineHeight: 1.7 } }, "Cutting data, thread geometry, and power constants follow standard machine-shop practice and are starting points, not guarantees \u2014 verify against your machine, tooling, and material, and ease in. Speeds assume sharp tools and adequate lubrication. Built for the home shop and the conservation bench.")));
 }
 
 var _el=document.getElementById('root');
