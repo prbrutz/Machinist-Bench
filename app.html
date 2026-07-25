@@ -5243,20 +5243,34 @@ function GearCalc({ units: units2 }) {
   const [driveT, setDriveT] = useState("20");
   const [drivenT, setDrivenT] = useState("40");
   const [rpmIn, setRpmIn] = useState("100");
+  const [torqueIn, setTorqueIn] = useState("10");
   const [dp, setDp] = useState("20");
+  const [wheelDia, setWheelDia] = useState("");
+  const tUnit = units2 === "met" ? "N\xB7m" : "in-lb";
   const out = useMemo(() => {
     const a = parseInt(driveT), b = parseInt(drivenT), n = parseFloat(rpmIn), P = parseFloat(dp);
+    const tIn = parseFloat(torqueIn);
     if ([a, b].some((v) => isNaN(v) || v < 1)) return null;
     const ratio = b / a, rpmOut = isNaN(n) ? null : n * a / b;
+    const torqueOut = isNaN(tIn) ? null : tIn * ratio;
     let pd = null, cd = null, od = null;
     if (!isNaN(P) && P > 0) {
       pd = { a: a / P, b: b / P };
       cd = (a + b) / (2 * P);
       od = { a: (a + 2) / P, b: (b + 2) / P };
     }
-    return { ratio, rpmOut, pd, cd, od };
-  }, [driveT, drivenT, rpmIn, dp]);
-  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "Gear Ratio & Geometry", accent: S.violet, sub: "spur-gear ratio, speed, centers (diametral pitch)" }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(Field, { label: "Driver Teeth" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: driveT, onChange: setDriveT, step: "1", min: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Driven Teeth" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: drivenT, onChange: setDrivenT, step: "1", min: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Input Speed", hint: "RPM" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: rpmIn, onChange: setRpmIn, step: "10" })), /* @__PURE__ */ React.createElement(Field, { label: "Diametral Pitch", hint: "teeth/in" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: dp, onChange: setDp, step: "1" }))), out && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 140 }, /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Gear Ratio", value: out.ratio.toFixed(4), unit: ":1", accent: S.violet, sub: `${driveT}:${drivenT}` }), out.rpmOut != null && /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Output Speed", value: Math.round(out.rpmOut).toLocaleString(), unit: "RPM", accent: S.blue }), out.cd != null && /* @__PURE__ */ React.createElement(Readout, { label: "Center Distance", value: out.cd.toFixed(4), unit: "in", accent: S.green, sub: units2 === "met" ? `${(out.cd * 25.4).toFixed(2)} mm` : void 0 })), out.pd && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
+    let wheelMph = null, wheelKmh = null;
+    const wd = parseFloat(wheelDia);
+    if (!isNaN(wd) && wd > 0 && rpmOut != null) {
+      if (units2 === "met") {
+        wheelKmh = Math.PI * wd * Math.abs(rpmOut) * 60 / 1e6;
+      } else {
+        wheelMph = Math.PI * wd * Math.abs(rpmOut) * 60 / 63360;
+      }
+    }
+    return { ratio, rpmOut, torqueOut, pd, cd, od, wheelMph, wheelKmh };
+  }, [driveT, drivenT, rpmIn, torqueIn, dp, wheelDia, units2]);
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "Gear Ratio & Geometry", accent: S.violet, sub: "spur-gear ratio, speed, torque, centers (diametral pitch)" }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(Field, { label: "Driver Teeth" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: driveT, onChange: setDriveT, step: "1", min: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Driven Teeth" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: drivenT, onChange: setDrivenT, step: "1", min: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Input Speed", hint: "RPM" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: rpmIn, onChange: setRpmIn, step: "10" })), /* @__PURE__ */ React.createElement(Field, { label: "Input Torque", hint: tUnit }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: torqueIn, onChange: setTorqueIn, step: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Diametral Pitch", hint: "teeth/in" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.violet, value: dp, onChange: setDp, step: "1" }))), out && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 140 }, /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Gear Ratio", value: out.ratio.toFixed(4), unit: ":1", accent: S.violet, sub: `${drivenT}:${driveT}` }), /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Mechanical Advantage", value: out.ratio.toFixed(4), unit: "\xD7", accent: S.teal, sub: "output torque = input torque \xD7 this" }), out.rpmOut != null && /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Output Speed", value: Math.round(out.rpmOut).toLocaleString(), unit: "RPM", accent: S.blue, sub: "opposite direction to input" }), out.torqueOut != null && /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Output Torque", value: out.torqueOut.toFixed(2), unit: tUnit, accent: S.amber }), out.cd != null && /* @__PURE__ */ React.createElement(Readout, { label: "Center Distance", value: out.cd.toFixed(4), unit: "in", accent: S.green, sub: units2 === "met" ? `${(out.cd * 25.4).toFixed(2)} mm` : void 0 })), out.pd && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(
     Table,
     {
       accent: S.violet,
@@ -5266,7 +5280,7 @@ function GearCalc({ units: units2 }) {
         ["Driven", drivenT, `${out.pd.b.toFixed(4)}\u2033`, `${out.od.b.toFixed(4)}\u2033`]
       ]
     }
-  )), /* @__PURE__ */ React.createElement(Note, null, "Pitch \xD8 = teeth \xF7 DP; outside \xD8 = (teeth + 2) \xF7 DP; center distance = (T\u2081 + T\u2082) \xF7 (2 \xD7 DP). For module gears, pitch \xD8 = teeth \xD7 module and center distance = (T\u2081 + T\u2082) \xD7 module \xF7 2. Ratio > 1 reduces speed and multiplies torque."))));
+  )), /* @__PURE__ */ React.createElement(Note, null, "Pitch \xD8 = teeth \xF7 DP; outside \xD8 = (teeth + 2) \xF7 DP; center distance = (T\u2081 + T\u2082) \xF7 (2 \xD7 DP). For module gears, pitch \xD8 = teeth \xD7 module and center distance = (T\u2081 + T\u2082) \xD7 module \xF7 2."), /* @__PURE__ */ React.createElement(Note, null, "Two external spur gears meshed directly always turn opposite directions \u2014 if the driver is clockwise, the driven gear is counterclockwise. Speed and torque here are ideal (lossless): real trains lose a few percent per mesh to friction, so expect slightly less output torque than shown."), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Field, { label: "Driving a Wheel? Wheel \xD8", hint: units2 === "met" ? "mm \xB7 optional" : "in \xB7 optional" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.teal, value: wheelDia, onChange: setWheelDia, step: units2 === "met" ? "10" : "1", placeholder: "leave blank to skip" })), (out.wheelMph != null || out.wheelKmh != null) && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Wheel Speed", value: units2 === "met" ? out.wheelKmh.toFixed(2) : out.wheelMph.toFixed(2), unit: units2 === "met" ? "km/h" : "mph", accent: S.teal, sub: "from output speed \xD7 wheel circumference" }))))));
 }
 function BarWeight({ units: units2 }) {
   const [shape, setShape] = useState("round");
