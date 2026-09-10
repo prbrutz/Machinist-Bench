@@ -230,6 +230,26 @@
   .device-cap{display:block;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--ink-faint);margin-top:16px}
 </style>
+
+<style>
+  .ip-back[hidden]{display:none;}
+  .ip-back{position:fixed;inset:0;background:rgba(8,10,13,.72);backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:900;}
+  .ip{background:var(--graphite-2);border:1px solid var(--line);border-radius:16px;
+    max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:26px 26px 22px;position:relative;}
+  .ip h3{margin:0 0 8px;font-size:1.35rem;color:var(--steel-bright);}
+  .ip-lead{margin:0 0 18px;color:var(--steel-dim);line-height:1.55;}
+  .ip-os{border-top:1px solid var(--line);padding-top:14px;margin-top:14px;}
+  .ip-os h4{margin:0 0 10px;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--slate-bright);}
+  .ip-os ol{margin:0;padding-left:20px;color:var(--steel);line-height:1.65;}
+  .ip-os li{margin-bottom:5px;}
+  .ip-os b{color:var(--steel-bright);}
+  .ip-note{margin:9px 0 0;font-size:.86rem;color:var(--ink-faint);line-height:1.5;}
+  .ip-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;}
+  .ip-x{position:absolute;top:12px;right:14px;background:none;border:0;color:var(--slate);
+    font-size:1.7rem;line-height:1;cursor:pointer;padding:4px 8px;}
+  .ip-x:hover{color:var(--steel-bright);}
+</style>
 </head>
 <body>
 
@@ -265,7 +285,7 @@
           <div class="readout">
             <div class="plate"><div class="v">15</div><div class="l">Tabs</div></div>
             <div class="plate"><div class="v">14</div><div class="l">Reference views</div></div>
-            <div class="plate"><div class="v"><small>&asymp;</small>196</div><div class="l">Threads</div></div>
+            <div class="plate"><div class="v">126</div><div class="l">Threads</div></div>
             <div class="plate"><div class="v">PWA</div><div class="l">Works offline</div></div>
           </div>
         </div>
@@ -297,7 +317,7 @@
         <div class="card" data-reveal>
           <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 7c2-2 4 2 6 0s4 2 6 0 4 2 4 2M4 12c2-2 4 2 6 0s4 2 6 0 4 2 4 2M4 17c2-2 4 2 6 0s4 2 6 0 4 2 4 2"/></svg></div>
           <h3>Thread concordance</h3>
-          <p>Pitch, major and minor diameters, and tap drills across roughly 196 threads &mdash; from current standards to the long-obsolete.</p>
+          <p>Pitch, major and minor diameters, and tap drills across 126 threads &mdash; from current standards to the long-obsolete.</p>
         </div>
 
         <div class="card" data-reveal>
@@ -383,16 +403,16 @@
         <div data-reveal>
           <p class="eyebrow">Thread concordance</p>
           <h2 class="h2">Threads nobody else still lists</h2>
-          <p class="sub">Modern, imperial, and the forgotten corners of 19th- and early-20th-century practice &mdash; the standards you meet when you restore old machines, cameras, and sewing heads, not just the ones in a current catalog.</p>
+          <p class="sub">Modern, imperial, and the forgotten corners of 19th- and early-20th-century practice &mdash; the standards you meet when you restore old machines, instruments, and clocks, not just the ones in a current catalog.</p>
           <div class="tagrow">
             <span class="tag">Metric</span>
             <span class="tag">Unified</span>
             <span class="tag">Whitworth</span>
             <span class="tag">BA</span>
             <span class="tag">Thury</span>
-            <span class="tag">L&ouml;wenherz</span>
+            <span class="tag">BS Brass 26 TPI</span>
             <span class="tag">Camera mounts</span>
-            <span class="tag">Sewing-machine</span>
+            <span class="tag">Model Engineer</span>
             <span class="tag dim">&hellip;and obsolete types</span>
           </div>
         </div>
@@ -478,7 +498,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
             Open the app
           </a>
-          <a class="btn btn-ghost" href="app.html">Add to home screen</a>
+          <button class="btn btn-ghost" type="button" id="installBtn">Add to home screen</button>
         </div>
         <a class="guide-link" href="guide.html">
           New to the app? Read the user guide
@@ -488,11 +508,48 @@
     </div>
   </section>
 
+
+<div class="ip-back" id="ipBack" hidden>
+  <div class="ip" role="dialog" aria-modal="true" aria-labelledby="ipTitle">
+    <button class="ip-x" id="ipClose" aria-label="Close">&times;</button>
+    <h3 id="ipTitle">Add it to your home screen</h3>
+    <p class="ip-lead">It gets an icon and opens full-screen, like any other app &mdash; and it keeps working with no signal.</p>
+    <div class="ip-os" id="ipIos">
+      <h4>iPhone &amp; iPad &mdash; Safari</h4>
+      <ol>
+        <li>Open <b>the app</b> (not this page) in Safari.</li>
+        <li>Tap the <b>Share</b> button &mdash; the square with an arrow pointing up.</li>
+        <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+      </ol>
+      <p class="ip-note">Safari only. Chrome and Firefox on iOS can&rsquo;t do this &mdash; that&rsquo;s an Apple limitation, not the app&rsquo;s.</p>
+    </div>
+    <div class="ip-os" id="ipAndroid">
+      <h4>Android &mdash; Chrome</h4>
+      <ol>
+        <li>Open <b>the app</b> in Chrome.</li>
+        <li>Tap the <b>&#8942;</b> menu, top right.</li>
+        <li>Tap <b>Install app</b> or <b>Add to Home screen</b>.</li>
+      </ol>
+    </div>
+    <div class="ip-os" id="ipDesktop">
+      <h4>Desktop &mdash; Chrome or Edge</h4>
+      <ol>
+        <li>Open the app.</li>
+        <li>Click the <b>install</b> icon at the right of the address bar.</li>
+      </ol>
+    </div>
+    <div class="ip-row">
+      <a class="btn btn-primary" href="app.html">Open the app first</a>
+      <button class="btn btn-ghost" type="button" id="ipInstall" hidden>Install now</button>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <footer>
   <div class="wrap foot">
-    <span><b>The Machinist&rsquo;s Bench</b> &middot; v4.32</span>
+    <span><b>The Machinist&rsquo;s Bench</b> &middot; v4.46</span>
     <span class="foot-links">
       <a href="guide.html">User guide</a>
       <a href="app.html">Open the app</a>
@@ -560,6 +617,38 @@
         if(screenEl) screenEl.scrollTop=0;
       });
     });
+  })();
+
+  /* add-to-home-screen panel */
+  (function(){
+    var btn=document.getElementById('installBtn');
+    var back=document.getElementById('ipBack');
+    if(!btn||!back) return;
+    var deferred=null;
+    var ios=document.getElementById('ipIos'),
+        andr=document.getElementById('ipAndroid'),
+        desk=document.getElementById('ipDesktop'),
+        now=document.getElementById('ipInstall');
+    var ua=navigator.userAgent||'';
+    var isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    var isAndroid=/Android/.test(ua);
+    /* show the section that matches the device; keep the others available below */
+    if(isIOS){ andr.hidden=true; desk.hidden=true; }
+    else if(isAndroid){ ios.hidden=true; desk.hidden=true; }
+    window.addEventListener('beforeinstallprompt',function(e){
+      e.preventDefault(); deferred=e; if(now) now.hidden=false;
+    });
+    if(now) now.addEventListener('click',function(){
+      if(!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function(){ deferred=null; now.hidden=true; close(); });
+    });
+    function open(){ back.hidden=false; document.body.style.overflow='hidden'; }
+    function close(){ back.hidden=true; document.body.style.overflow=''; }
+    btn.addEventListener('click',open);
+    document.getElementById('ipClose').addEventListener('click',close);
+    back.addEventListener('click',function(e){ if(e.target===back) close(); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!back.hidden) close(); });
   })();
 </script>
 </body>
