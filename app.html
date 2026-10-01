@@ -705,7 +705,7 @@ function SpeedIn({ sfm, setSfm, units: units2, accent }) {
   return /* @__PURE__ */ React.createElement(NumIn, { accent, value: disp, onChange: onC, step: met ? "5" : "10" });
 }
 function Panel({ title, accent = S.blue, children, right, sub }) {
-  return /* @__PURE__ */ React.createElement("div", { style: {
+  return /* @__PURE__ */ React.createElement("div", { "data-anchor": typeof title === "string" ? title : void 0, style: {
     background: S.panel,
     border: `1px solid ${S.line}`,
     borderRadius: 14,
@@ -923,12 +923,21 @@ function Table({ cols, rows, accent = S.blue, onRowClick }) {
   )))));
 }
 function Collapse({ title, accent = S.blue, children, open: initOpen = false }) {
-  const [open, setOpen] = useState(initOpen);
-  return /* @__PURE__ */ React.createElement("div", { style: { border: `1px solid ${S.line}`, borderRadius: 12, marginBottom: 14, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setOpen((o) => !o), style: {
+  const [open, setOpen] = useState(initOpen || SEARCH_ANCHOR != null && SEARCH_ANCHOR === title);
+  useEffect(() => {
+    const h = (e) => {
+      if (e.detail === title) setOpen(true);
+    };
+    window.addEventListener("mb-anchor", h);
+    return () => window.removeEventListener("mb-anchor", h);
+  }, [title]);
+  return /* @__PURE__ */ React.createElement("div", { "data-anchor": typeof title === "string" ? title : void 0, style: { border: `1px solid ${S.line}`, borderRadius: 12, marginBottom: 14, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setOpen((o) => !o), style: {
     width: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 12,
+    textAlign: "left",
     padding: "12px 16px",
     background: S.panel,
     border: "none",
@@ -1106,8 +1115,9 @@ function Parting({ units: units2 }) {
     ["Feed by width", "width \xD7 k_tool \xD7 (material fT \xF7 0.01)"]
   ] }));
 }
-function TurningSection({ units: units2 }) {
-  const [v, setV] = useState("turn");
+function TurningSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "turn");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -1566,8 +1576,9 @@ function Counterbore({ units: units2 }) {
     }
   ), /* @__PURE__ */ React.createElement(Note, null, "Values per ASME B18.3. Inch clearances are given as the nearest drill (number, letter, or fraction); metric clearances follow ISO 273 \u2014 close = fine series, normal = medium series. Counterbore \xD8 \u2248 head \xD8 + 1/16\u2033 of radial clearance.")));
 }
-function DrillingSection({ units: units2 }) {
-  const [v, setV] = useState("feed");
+function DrillingSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "feed");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -2106,17 +2117,112 @@ function DovetailCalc({ units: units2 }) {
     }
   ), /* @__PURE__ */ React.createElement(Note, null, "Above: a 60\xB0 dovetail checked with \xBC\u2033 rods \u2014 the rod term is 0.25 \xD7 (1 + cot 30\xB0) = ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "0.683\u2033"), " both ways, added over the male, subtracted between the female's rods. Male example \u2014 a \xBE\u2033 root (W is the narrow width between the flank\u2013shoulder corners) reads 0.75 + 0.683 = ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "1.433\u2033"), " over the rods; the female of the same floor width reads 0.75 \u2212 0.683 = 0.067\u2033 (the rods nearly touch, a sign they're oversized for so small a socket). Pick a rod that contacts the flank on its straight part \u2014 contact height \u2248 r \xD7 (1 + cos \u2220), so a \xBC\u2033 rod at 60\xB0 needs about 0.19\u2033 of flank \u2014 and on a male it must also stand proud of the wide top so the mic lands on the rods, not the corners. Drill blanks or hardened dowel pins work; matched gauge pins are best.")));
 }
-function MillingSection({ units: units2 }) {
-  const [v, setV] = useState("flat");
+const SAW_SPD = 0.8;
+const SAW_FZ = 0.3;
+const SLOT_SAW_IN = [6e-3, 8e-3, 0.01, 0.012, 0.014, 0.016, 0.018, 0.02, 0.023, 0.025, 0.028, 0.032, 0.036, 0.04, 0.045, 0.051, 0.057, 0.064, 0.072, 0.081, 0.091, 0.102, 0.114, 0.128, 0.144];
+const SCREW_SLOT_IN = [
+  ["#0", 0.016, 0.023, 0.014, 0.022],
+  ["#1", 0.019, 0.026, 0.018, 0.027],
+  ["#2", 0.023, 0.031, 0.022, 0.031],
+  ["#3", 0.027, 0.035, 0.026, 0.036],
+  ["#4", 0.031, 0.039, 0.03, 0.04],
+  ["#5", 0.035, 0.043, 0.034, 0.045],
+  ["#6", 0.039, 0.048, 0.037, 0.05],
+  ["#8", 0.045, 0.054, 0.045, 0.058],
+  ["#10", 0.05, 0.06, 0.053, 0.068],
+  ["#12", 0.056, 0.067, 0.061, 0.077],
+  ["1/4", 0.064, 0.075, 0.07, 0.087],
+  ["5/16", 0.072, 0.084, 0.085, 0.106],
+  ["3/8", 0.081, 0.094, 0.1, 0.124],
+  ["7/16", 0.081, 0.094, 0.116, 0.142],
+  ["1/2", 0.091, 0.106, 0.131, 0.161]
+];
+const SCREW_SLOT_MM = [
+  ["M1.6", 0.4, 0.46, 0.6, 0.35],
+  ["M2", 0.5, 0.56, 0.7, 0.5],
+  ["M2.5", 0.6, 0.66, 0.8, 0.6],
+  ["M3", 0.8, 0.86, 1, 0.7],
+  ["M3.5", 1, 1.06, 1.2, 0.8],
+  ["M4", 1.2, 1.26, 1.51, 1],
+  ["M5", 1.2, 1.26, 1.51, 1.2],
+  ["M6", 1.6, 1.66, 1.91, 1.4],
+  ["M8", 2, 2.06, 2.31, 1.9],
+  ["M10", 2.5, 2.56, 2.81, 2.4]
+];
+function slotSawFor(jmax) {
+  let best = null;
+  for (const t of SLOT_SAW_IN) if (t <= jmax - 2e-3 + 1e-9) best = t;
+  return best;
+}
+function sawFzRec(matKey, thkIn) {
+  const k = isNaN(thkIn) || thkIn <= 0 ? 1 : Math.min(1, Math.max(0.4, thkIn / 0.0625));
+  return MAT[matKey].cl * SAW_FZ * k;
+}
+function SlittingSaw({ units: units2 }) {
+  const met = units2 === "met";
+  const [mat, setMat] = useState("lowc");
+  const [tool, setTool] = useState("hss");
+  const [dia, setDia, diaIn] = useConvField(2.75, units2, { impDec: 3 });
+  const [thk, setThk, thkIn] = useConvField(0.0625, units2, { impDec: 4 });
+  const [teeth, setTeeth] = useState("72");
+  const [depth, setDepth, depthIn] = useConvField(0.25, units2, { impDec: 3 });
+  const [flange, setFlange, flangeIn] = useConvField(1.5, units2, { impDec: 3 });
+  const [sfm, setSfm] = useState("68");
+  const [cl, setCl, clIn] = useConvField(9e-4, units2, { impDec: 4, metDec: 3 });
+  const [lube, setLube] = useState("oil");
+  const [slotStd, setSlotStd] = useState(met ? "mm" : "in");
+  const lf = lubeFactor(mat, lube);
+  const rng = tool === "hss" ? MAT[mat].m : MAT[mat].mc;
+  const rngAdj = [Math.round(rng[0] * SAW_SPD * lf), Math.round(rng[1] * SAW_SPD * lf)];
+  useEffect(() => {
+    setSfm(String(Math.round((rng[0] + rng[1]) / 2 * SAW_SPD * lf)));
+  }, [mat, tool, lube]);
+  const fzRec = sawFzRec(mat, thkIn());
+  useEffect(() => {
+    setCl(met ? (fzRec * 25.4).toFixed(3) : fzRec.toFixed(4));
+  }, [mat, thk]);
+  const L = (inch, dIn = 3, dMm = 2) => met ? `${(inch * 25.4).toFixed(dMm)} mm` : `${inch.toFixed(dIn)}\u2033`;
+  const out = useMemo(() => {
+    const D = diaIn(), Z = parseInt(teeth, 10), ae = depthIn(), Fd = flangeIn(), Sv = parseFloat(sfm), fz = clIn();
+    if ([D, Z, ae, Sv, fz].some((v) => isNaN(v) || v <= 0)) return null;
+    const rpm = Sv * 12 / (Math.PI * D);
+    const ipm = rpm * Z * fz;
+    const a = Math.min(ae, D);
+    const phi = Math.acos(1 - 2 * a / D);
+    const tic = Z * phi / (2 * Math.PI);
+    const hex = a < D / 2 ? fz * 2 * Math.sqrt(a * (D - a)) / D : fz;
+    const pitch = Math.PI * D / Z;
+    const reach = !isNaN(Fd) && Fd > 0 && Fd < D ? (D - Fd) / 2 : null;
+    const clear = reach != null ? reach - ae : null;
+    return { rpm, ipm, tic, hex, pitch, reach, clear, deg: phi * 180 / Math.PI };
+  }, [diaIn, teeth, depthIn, flangeIn, sfm, clIn]);
+  const ticAcc = !out ? S.green : out.tic < 1 ? S.red : out.tic < 2 ? S.amber : S.green;
+  const slotRowsIn = SCREW_SLOT_IN.map(([n, jmin, jmax, tmin, tmax]) => {
+    const saw = slotSawFor(jmax);
+    return [n, `${jmin.toFixed(3)}\u2013${jmax.toFixed(3)}\u2033`, saw ? `${saw.toFixed(3)}\u2033` : "\u2014", `${tmin.toFixed(3)}\u2013${tmax.toFixed(3)}\u2033`];
+  });
+  const slotRowsMm = SCREW_SLOT_MM.map(([n, nom, nmin, nmax, tmin]) => [n, `${nmin.toFixed(2)}\u2013${nmax.toFixed(2)} mm`, `${nom.toFixed(1)} mm`, `\u2265 ${tmin.toFixed(2)} mm`]);
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "Slitting Saw", accent: S.amber, sub: "RPM \xB7 table feed \xB7 teeth in the cut" }, /* @__PURE__ */ React.createElement(Grid, { min: 185 }, /* @__PURE__ */ React.createElement(Field, { label: "Material", hint: MAT[mat].hb }, /* @__PURE__ */ React.createElement(Sel, { accent: S.amber, value: mat, onChange: setMat, options: matOpts }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "0.68rem", color: MAT_PROPS[mat].lead ? S.amber : S.mut, marginTop: 6 } }, matPropsLine(mat))), /* @__PURE__ */ React.createElement(Field, { label: "Saw" }, /* @__PURE__ */ React.createElement(Seg, { accent: S.amber, value: tool, onChange: setTool, options: [["hss", "HSS"], ["car", "Carbide"]] })), /* @__PURE__ */ React.createElement(Field, { label: "Saw \xD8", hint: met ? "mm" : "in" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.amber, value: dia, onChange: setDia, step: met ? "5" : "0.25" })), /* @__PURE__ */ React.createElement(Field, { label: "Thickness", hint: met ? "mm" : "in" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.amber, value: thk, onChange: setThk, step: met ? "0.1" : "0.001" })), /* @__PURE__ */ React.createElement(Field, { label: "Teeth", hint: "count on the saw" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.amber, value: teeth, onChange: setTeeth, step: "1", min: "1" })), /* @__PURE__ */ React.createElement(Field, { label: "Depth of Cut", hint: met ? "mm \xB7 slot or stock" : "in \xB7 slot or stock" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.amber, value: depth, onChange: setDepth, step: met ? "0.5" : "0.0156" })), /* @__PURE__ */ React.createElement(Field, { label: "Arbor Flange \xD8", hint: met ? "mm \xB7 sets max depth" : "in \xB7 sets max depth" }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.amber, value: flange, onChange: setFlange, step: met ? "1" : "0.125" })), /* @__PURE__ */ React.createElement(Field, { label: "Surface Speed", hint: recHint(rngAdj[0], rngAdj[1], units2) }, /* @__PURE__ */ React.createElement(SpeedIn, { accent: S.amber, sfm, setSfm, units: units2 })), /* @__PURE__ */ React.createElement(Field, { label: "Chip Load / Tooth", hint: `rec ${met ? (fzRec * 25.4).toFixed(3) + " mm" : fzRec.toFixed(4) + "\u2033"}` }, /* @__PURE__ */ React.createElement(NumIn, { accent: S.amber, value: cl, onChange: setCl, step: met ? "0.005" : "0.0001" })), /* @__PURE__ */ React.createElement(Field, { label: "Cutting Fluid" }, /* @__PURE__ */ React.createElement(Seg, { accent: S.amber, value: lube, onChange: setLube, options: LUBE_OPTS }))), out && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18 } }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Spindle Speed", value: Math.round(out.rpm).toLocaleString(), unit: "RPM", accent: S.amber, sub: `${Math.round(parseFloat(sfm))} SFM \xB7 ${mmin(parseFloat(sfm)).toFixed(0)} m/min` }), /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Table Feed", value: met ? (out.ipm * 25.4).toFixed(0) : out.ipm.toFixed(2), unit: met ? "mm/min" : "IPM", accent: S.blue, sub: met ? `${out.ipm.toFixed(2)} IPM \xB7 fz ${(clIn() * 25.4).toFixed(3)} mm` : `${(out.ipm * 25.4).toFixed(0)} mm/min \xB7 fz ${clIn().toFixed(4)}\u2033` }), /* @__PURE__ */ React.createElement(Readout, { big: true, label: "Teeth in Cut", value: out.tic.toFixed(1), unit: "teeth", accent: ticAcc, sub: `${out.deg.toFixed(0)}\xB0 of arc \xB7 pitch ${L(out.pitch, 3, 2)}` })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(Grid, { min: 150 }, /* @__PURE__ */ React.createElement(Readout, { label: "Actual Chip (max)", value: met ? (out.hex * 25.4).toFixed(3) : out.hex.toFixed(4), unit: met ? "mm" : "in", accent: S.teal, sub: out.hex < clIn() * 0.995 ? `thinned \xD7${(out.hex / clIn()).toFixed(2)} by a shallow cut` : "full chip \u2014 depth \u2265 \xBD\xD8" }), out.reach != null && /* @__PURE__ */ React.createElement(Readout, { label: "Max Depth", value: met ? (out.reach * 25.4).toFixed(1) : out.reach.toFixed(3), unit: met ? "mm" : "in", accent: out.clear < 0 ? S.red : out.clear < 0.0625 ? S.amber : S.violet, sub: out.clear < 0 ? "flange hits the work" : `${L(out.clear, 3, 1)} flange clearance` })))), out && out.tic < 2 && /* @__PURE__ */ React.createElement(Note, { tone: out.tic < 1 ? "bad" : "warn" }, out.tic < 1 ? "Less than one tooth in the cut \u2014 each tooth strikes the work on its own and the saw hammers. " : "Fewer than two teeth in the cut \u2014 the saw is lightly supported and can chatter or snag. ", "Use a finer-pitch saw (more teeth on the same \xD8), a smaller \xD8, or a deeper cut. For thin sheet, clamp it to a backing plate and cut into that as well."), out && out.clear != null && out.clear < 0.0625 && /* @__PURE__ */ React.createElement(Note, { tone: out.clear < 0 ? "bad" : "warn" }, out.clear < 0 ? "The cut is deeper than the saw projects past the arbor flange \u2014 the flange will hit the work. " : "Under 1/16\u2033 (1.5 mm) between the flange and the work. ", "Use a larger saw, a smaller flange, or cut in two passes from opposite sides."), out && out.hex < clIn() * 0.6 && /* @__PURE__ */ React.createElement(Note, null, "In a shallow cut the arc of contact is short, so the chip comes off at only ", Math.round(100 * out.hex / clIn()), "% of the feed per tooth. If the saw rubs or glazes, especially in stainless, raise the feed toward ", met ? `${(clIn() * clIn() / out.hex * 25.4).toFixed(3)} mm` : `${(clIn() * clIn() / out.hex).toFixed(4)}\u2033`, " per tooth to restore a full chip \u2014 in small steps, and listen to the cut."), /* @__PURE__ */ React.createElement(Note, null, "Starting values: speed at 80% of the HSS end-mill range for the material (carbide saws, of the carbide range); chip load at 30% of the end-mill chip load, reduced further for saws thinner than 1/16\u2033 (down to 40% of that at 0.025\u2033 and below). A thin saw flexes and heats faster than an end mill."), /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "Cut conventional (up-cut) on a manual mill. Climb cutting lets the saw pull the work, or the table, into it through the backlash, and a thin saw shatters. Lock the axes you aren't feeding. On a keyless arbor the saw is driven by flange friction, so a jam usually slips rather than snapping the saw \u2014 snug the nut; don't over-tighten it."), /* @__PURE__ */ React.createElement(Note, null, "Indicate the saw's side face before cutting. Wobble cuts a wider slot and loads only part of the teeth. Keep the saw close to the spindle, and in deep slots use plenty of oil and back out to clear chips."), /* @__PURE__ */ React.createElement(Note, null, lubeNote(mat, lube))), /* @__PURE__ */ React.createElement(Collapse, { title: "Screw Slots \u2014 Saw & Depth", accent: S.amber }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Seg, { accent: S.amber, size: "sm", value: slotStd, onChange: setSlotStd, options: [["in", "Inch \xB7 ASME B18.6.3"], ["mm", "Metric \xB7 ISO 1580"]] })), slotStd === "in" ? /* @__PURE__ */ React.createElement(Table, { accent: S.amber, cols: ["Screw", "Slot width", "Saw", "Slot depth"], rows: slotRowsIn }) : /* @__PURE__ */ React.createElement(Table, { accent: S.amber, cols: ["Screw", "Slot width", "Saw", "Slot depth"], rows: slotRowsMm }), /* @__PURE__ */ React.createElement(Note, null, slotStd === "in" ? "Slot width and depth are min\u2013max for slotted pan-head machine screws (ASME B18.6.3). Other head styles use the same slot width but different depths. The saw is the thickest standard screw-slotting saw at least 0.002\u2033 under the maximum width, which leaves room for runout. Common screw-slotting saws are 1\xBE\u2033 \xD8 with a 5/8\u2033 hole." : "Slot width n and minimum depth t for slotted pan-head screws (ISO 1580). The tolerance band runs from 0.06 mm over nominal, so a saw of the nominal width plus normal runout cuts into it. Check the first slot with a feeler gauge.")), /* @__PURE__ */ React.createElement(Collapse, { title: "Reference \u2014 Slitting Saw Speeds", accent: S.amber }, /* @__PURE__ */ React.createElement(
+    Table,
+    {
+      accent: S.amber,
+      cols: ["Material", "HSS SFM", "Carbide SFM", "Chip / tooth (\u2265 1/16\u2033 saw)"],
+      rows: MAT_ORDER.map((k) => [MAT[k].n, `${Math.round(MAT[k].m[0] * SAW_SPD)}\u2013${Math.round(MAT[k].m[1] * SAW_SPD)}`, `${Math.round(MAT[k].mc[0] * SAW_SPD)}\u2013${Math.round(MAT[k].mc[1] * SAW_SPD)}`, (MAT[k].cl * SAW_FZ).toFixed(4) + "\u2033"])
+    }
+  ), /* @__PURE__ */ React.createElement(Note, null, "Flood-coolant baseline. Brushed oil eases speed about 15%, dry about 30%; cast iron is cut dry.")));
+}
+function MillingSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "flat");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
       value: v,
       onChange: setV,
       accent: S.amber,
-      options: [["flat", "Square / End Mill"], ["ball", "Ball Nose"], ["chamfer", "Chamfer"], ["dovetail", "Dovetail"], ["scallop", "Scallop / Stepover"]]
+      options: [["flat", "Square / End Mill"], ["ball", "Ball Nose"], ["chamfer", "Chamfer"], ["dovetail", "Dovetail"], ["scallop", "Scallop / Stepover"], ["slit", "Slitting Saw"]]
     }
-  )), v === "flat" && /* @__PURE__ */ React.createElement(Milling, { units: units2 }), v === "ball" && /* @__PURE__ */ React.createElement(BallNose, { units: units2 }), v === "chamfer" && /* @__PURE__ */ React.createElement(ChamferMill, { units: units2 }), v === "dovetail" && /* @__PURE__ */ React.createElement(DovetailCalc, { units: units2 }), v === "scallop" && /* @__PURE__ */ React.createElement(ScallopCalc, { units: units2 }));
+  )), v === "flat" && /* @__PURE__ */ React.createElement(Milling, { units: units2 }), v === "ball" && /* @__PURE__ */ React.createElement(BallNose, { units: units2 }), v === "chamfer" && /* @__PURE__ */ React.createElement(ChamferMill, { units: units2 }), v === "dovetail" && /* @__PURE__ */ React.createElement(DovetailCalc, { units: units2 }), v === "scallop" && /* @__PURE__ */ React.createElement(ScallopCalc, { units: units2 }), v === "slit" && /* @__PURE__ */ React.createElement(SlittingSaw, { units: units2 }));
 }
 function Tapping({ units: units2 }) {
   const [std, setStd] = useState("unc");
@@ -2377,8 +2483,9 @@ function InternalThreading({ units: units2 }) {
     }
   ), /* @__PURE__ */ React.createElement(Note, null, "60\xB0 geometry (internal): bore-to (minor) \xD8 = D \u2212 1.2269p; pitch \xD8 = D \u2212 0.6495p; thread height = 0.6134p, cut outward from the bore wall as depth increases \u2014 D is the finished major \xD8. Compound travel = height \xF7 cos 29.5\xB0."), /* @__PURE__ */ React.createElement(Note, null, "Rigidity is the whole game here \u2014 a boring bar cantilevered into a hole flexes far more than an external holder ever will. Use the largest-diameter bar the bore allows, keep stickout to the minimum that reaches full depth, and if you get chatter, drop speed a step before changing anything else. Most indexable internal threading bars need roughly 3\u20134\xD7 the pitch in bore clearance to fit the insert and shank; smaller than that, a custom-ground HSS bar is often the only option."), /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "Blind hole: bore or drill a few thousandths past full thread depth at the bottom before threading \u2014 the tool needs somewhere to run out, since it can't run off the end the way an external tool does. Watch the compound feed dial closely and back out at the same mark every pass."))));
 }
-function ThreadingSection({ units: units2 }) {
-  const [v, setV] = useState("ext");
+function ThreadingSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "ext");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -2713,8 +2820,9 @@ function BoringHead({ units: units2 }) {
     ["Chamfer plunge Z", "radial leg \xD7 tan(angle from face)"]
   ] }), /* @__PURE__ */ React.createElement(Collapse, { title: "Reading the dial \u2014 the radius/diameter trap", accent: S.orange }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.body, fontSize: "0.8rem", color: S.mut2, lineHeight: 1.75 } }, "A boring head moves the cutter ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "radially"), ", so any slide move changes the bore by twice as much. The catch is how the maker engraved the dial. Most quality heads are marked in ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "tool movement"), ": a 0.001\u2033 graduation advances the tool 0.001\u2033 and opens the hole 0.002\u2033. Some heads (and many imports) are marked ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "on the diameter"), ", where a 0.001\u2033 graduation opens the hole 0.001\u2033. Neither is wrong \u2014 but you must know which you have, because the two differ by a factor of two on every cut."), /* @__PURE__ */ React.createElement(Note, null, 'Settle it with a test cut: bore, measure, advance a known number of divisions, bore again, and measure the change. Divide the diameter change by the divisions moved to get the true "per-division on \xD8," set the toggle to match, and write it on the head.')), /* @__PURE__ */ React.createElement(Collapse, { title: "Chamfering & facing with the head", accent: S.orange }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.body, fontSize: "0.8rem", color: S.mut2, lineHeight: 1.75 } }, "The same head will chamfer a bore mouth or face a flat. To ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "chamfer"), ", set the single-point edge to the chamfer angle, bring the tip out to the bore wall, and plunge Z; for a radial leg ", /* @__PURE__ */ React.createElement("em", null, "c"), "at an angle ", /* @__PURE__ */ React.createElement("em", null, "\u03B1"), " from the face the plunge is ", /* @__PURE__ */ React.createElement("em", null, "z = c \xB7 tan \u03B1"), " (a 45\xB0 chamfer plunges by its own width), opening the mouth to \xD8 + 2c. To ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "face or back-spotface"), ", move the bar into the axial (90\xB0) hole so the edge points along the spindle and sweeps a flat annulus as the head turns \u2014 the dial then sets the diameter of the faced face. Both cuts are interrupted as they start, so feed lightly and let the cut settle."), /* @__PURE__ */ React.createElement(Note, null, "For a square-bottomed blind bore, set the bar in the radial hole with almost no lead so the end edge reaches the corner, take the last pass at full depth, and dwell a moment to clean the corner before retracting. A large nose radius always leaves a small fillet \u2014 expected, not an error.")));
 }
-function BoringSection({ units: units2 }) {
-  const [v, setV] = useState("feed");
+function BoringSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "feed");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -3406,8 +3514,9 @@ function JewelerSaw({ units: units2 }) {
     }
   ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontFamily: F.mono, fontSize: 9, color: S.ink, letterSpacing: ".03em" } }, "Data: Contenti / Herkules White Label. Rule: 2\u20133 teeth in stock at all times. Grades 1/0\u20132 (roughly 40\u201354 TPI) are the most-used all-around range for general silversmithing.")));
 }
-function BandSawSection({ units: units2 }) {
-  const [v, setV] = useState("select");
+function BandSawSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "select");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -4410,8 +4519,9 @@ function ToolChooser() {
     }
   )), rec && /* @__PURE__ */ React.createElement("div", { style: { background: S.inset, borderRadius: 10, padding: "14px 16px", margin: "16px 0 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "1.1rem", fontWeight: 700, color: S.amber, letterSpacing: "0.03em" } }, rec.holder), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.85rem", color: S.ink, margin: "3px 0 10px" } }, rec.insert), /* @__PURE__ */ React.createElement(Row, { k: "geometry", v: rec.g.shape + " \xB7 " + rec.g.lead + " lead \u2014 " + rec.g.why }), /* @__PURE__ */ React.createElement(Row, { k: "clamping", v: rec.clampWhy }), /* @__PURE__ */ React.createElement(Row, { k: "grade", v: MAT2.cls + " \u2014 " + MAT2.grade }), /* @__PURE__ */ React.createElement(Row, { k: "edge", v: MAT2.edge }), /* @__PURE__ */ React.createElement(Row, { k: "nose radius", v: rec.radius }), rec.alt && /* @__PURE__ */ React.createElement(Row, { k: "also", v: rec.alt })), op === "thread" && /* @__PURE__ */ React.createElement("div", { style: { background: S.inset, borderRadius: 10, padding: "14px 16px", margin: "16px 0 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "1.1rem", fontWeight: 700, color: S.amber } }, "CER (ext) \xB7 CIR (int)"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.85rem", color: S.ink, margin: "3px 0 10px" } }, "16ER / 16IR laydown insert, pitch-matched"), /* @__PURE__ */ React.createElement(Row, { k: "external", v: "CER toolholder + 16ER insert; hand R cuts toward the chuck" }), /* @__PURE__ */ React.createElement(Row, { k: "internal", v: "CIR / SIR threading bar + 16IR \u2014 mind the minimum bore on the bar" }), /* @__PURE__ */ React.createElement(Row, { k: "profile", v: "full-profile cuts the crest to spec, one insert per pitch \xB7 partial profile (AG60 style) covers 48\u201316 TPI / 0.5\u20131.5 mm but leaves the crest to you" }), /* @__PURE__ */ React.createElement(Row, { k: "infeed", v: "the Threading tab has the flank-infeed schedule, depths, and wire checks" })), /* @__PURE__ */ React.createElement(Collapse, { title: "Reading a holder code (ISO 5608)", accent: S.amber }, /* @__PURE__ */ React.createElement(Row, { k: "1 \xB7 clamp", v: "C top clamp \xB7 D top + hole \xB7 M top + hole \xB7 P pin (lever) \xB7 S screw \xB7 W wedge" }), /* @__PURE__ */ React.createElement(Row, { k: "2 \xB7 insert", v: "C 80\xB0 \xB7 D 55\xB0 \xB7 K 55\xB0 offset \xB7 R round \xB7 S 90\xB0 \xB7 T 60\xB0 \xB7 V 35\xB0 \xB7 W 80\xB0 trigon" }), /* @__PURE__ */ React.createElement(Row, { k: "3 \xB7 style", v: "A 90 \xB7 B 75 \xB7 D 45 \xB7 E 60 \xB7 F 90 face \xB7 G 90 offset \xB7 J 93 \xB7 K 75 \xB7 L 95 \xB7 M 50 \xB7 N 63 \xB7 Q 107.5 \xB7 S 45 \xB7 T 60 \xB7 U 93 \xB7 V 72.5 \xB7 W 60 \u2014 lead angle with its usual insert" }), /* @__PURE__ */ React.createElement(Row, { k: "4 \xB7 clearance", v: "N 0\xB0 (negative insert) \xB7 C 7\xB0 \xB7 P 11\xB0 \xB7 B 5\xB0" }), /* @__PURE__ */ React.createElement(Row, { k: "5 \xB7 hand", v: "R right (cuts toward chuck) \xB7 L left \xB7 N neutral" }), /* @__PURE__ */ React.createElement(Row, { k: "6 \xB7 shank", v: "inch: height \xD7 width in 1/16\\u2033 (16 = 1\\u2033) \xB7 metric: mm (2020 = 20 \xD7 20)" }), /* @__PURE__ */ React.createElement(Row, { k: "7 \xB7 edge", v: "insert edge-length / IC code" }), /* @__PURE__ */ React.createElement(Row, { k: "bars", v: "boring bars prefix the shank: material (S steel \xB7 E/A carbide) + \xD8 mm + length letter \u2014 e.g. S16M-SCLCR-09" }), /* @__PURE__ */ React.createElement(Row, { k: "QCTP", v: "quick-change post capacity \u2014 AXA up to 1/2\\u2033 shank \xB7 BXA 5/8\\u2033 \xB7 CXA 3/4\\u2033 \u2014 size holders to fill the post" }), /* @__PURE__ */ React.createElement(Note, null, "The style letter sets the seat; the insert finishes the geometry \u2014 Q reads 107.5\xB0 with a C or D insert but 117.5\xB0 with a V. When in doubt, the catalog drawing wins.")), /* @__PURE__ */ React.createElement(Note, null, "This encodes the decision, not the catalog: lathe single-point work only (milling inserts are chosen by the cutter body). Once shape, lead, clamp, and grade are right, brands and exact designations are interchangeable."));
 }
-function Reference() {
-  const [view, setView] = useState("inserts");
+function Reference({ nav }) {
+  const [view, setView] = useState(nav && nav.sub || "inserts");
+  useNavSub(nav, setView);
   const [filt, setFilt] = useState("all");
   const shown = INSERTS.filter((x) => filt === "all" ? true : filt === "yours" ? x.yours : filt === "pos" ? x.relief.startsWith("Pos") : x.relief.startsWith("Neg"));
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
@@ -4976,8 +5086,9 @@ const DH_PLATES = {
   "Cincinnati (high)": [24, 25, 28, 30, 34, 37, 38, 39, 41, 42, 43]
 };
 const OT_PLATE = [24, 30, 36, 40, 48, 60, 72, 96];
-function ShopMath({ units: units2 }) {
-  const [calc, setCalc] = useState("bolt");
+function ShopMath({ units: units2, nav }) {
+  const [calc, setCalc] = useState(nav && nav.sub || "bolt");
+  useNavSub(nav, setCalc);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -6063,8 +6174,9 @@ function frac64Label(decimalInch) {
   if (f.num === 0) return f.whole === 0 ? "0" : `${f.whole}`;
   return f.whole > 0 ? `${f.whole}-${f.num}/${f.den}` : `${f.num}/${f.den}`;
 }
-function Converter() {
-  const [cat, setCat] = useState("len");
+function Converter({ nav }) {
+  const [cat, setCat] = useState(nav && nav.sub || "len");
+  useNavSub(nav, setCat);
   const [val, setVal] = useState("1");
   const cats = {
     len: {
@@ -6590,8 +6702,9 @@ function TorqueChart({ units: units2 }) {
     }
   )), /* @__PURE__ */ React.createElement(Table, { accent: S.orange, cols: ["Thread", "Into Steel (G5 / 8.8)", "Alum / Iron / Brass \u2020"], rows }), /* @__PURE__ */ React.createElement(Note, null, "Assembly torque for ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "SAE Grade 5"), " (inch) and ", /* @__PURE__ */ React.createElement("strong", { style: { color: S.ink } }, "ISO class 8.8"), " (metric) fasteners with clean, dry threads (K \u2248 0.2), tightened to 75% of proof load \u2014 the standard published basis. Small sizes read in\xB7lb / N\xB7cm, larger ones ft\xB7lb / N\xB7m, following the unit toggle. A lubed or plated fastener wants roughly 15\u201325% less; Grade 8 / class 10.9 takes ~35\u201340% more; for structural or critical work go by the fastener maker's or engineer's spec."), /* @__PURE__ */ React.createElement(Note, null, `\u2020 Torque into a material is limited by how much its internal threads take before stripping, which tracks the parent's shear strength \u2014 there's no separate published "into brass" column (the brass figures elsewhere online are for brass `, /* @__PURE__ */ React.createElement("em", null, "bolts"), ", a different question). Free-machining brass (C360) is comparable to common aluminum, a touch stronger, so the aluminum / iron value is a safe, slightly conservative guide; harder brass and bronze trend up toward the steel column. Engagement of about 1\xD7 diameter suits steel, ~1.5\u20132\xD7 the softer metals."));
 }
-function ThreadFinder({ units: units2 }) {
-  const [fam, setFam] = useState("all");
+function ThreadFinder({ units: units2, nav }) {
+  const [fam, setFam] = useState(nav && nav.sub || "all");
+  useNavSub(nav, setFam);
   const [near, setNear, nearIn] = useConvField(6.35, units2, { impDec: 4 });
   const [useNear, setUseNear] = useState(false);
   const queryMm = useNear ? units2 === "met" ? parseFloat(near) : nearIn() * 25.4 : null;
@@ -6643,8 +6756,9 @@ function GaugeStack({ units: units2 }) {
     /* @__PURE__ */ React.createElement(Note, null, "Digit-elimination wring: clear the smallest decimal place first (the wear/tenths block), then each larger place in turn \\u2014 this gives the fewest blocks for a standard set. Wipe, oil-film, and wring each block to the one below; build the stack base-up and handle as little as possible to keep heat out.")
   );
 }
-function LayoutSection({ units: units2 }) {
-  const [v, setV] = useState("plate");
+function LayoutSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "plate");
+  useNavSub(nav, setV);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
@@ -7285,8 +7399,9 @@ function BoatScales({ units: units2 }) {
     /* @__PURE__ */ React.createElement(Note, { tone: "warn" }, "Powered model boats \u2014 electric and live steam \u2014 usually follow the classic scales above, sized to the model's purpose (a steam plant or motor and battery have to fit the hull). For scratch builds, ship modellers often pick whatever scale makes the finished hull a workable size, then keep every fitting to that one ratio.")
   );
 }
-function ScaleSection({ units: units2 }) {
-  const [v, setV] = useState("conv");
+function ScaleSection({ units: units2, nav }) {
+  const [v, setV] = useState(nav && nav.sub || "conv");
+  useNavSub(nav, setV);
   const scaleTools = ["conv", "car", "air", "boat"];
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.62rem", color: S.mut, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 } }, "find a scale"), /* @__PURE__ */ React.createElement(
     Seg,
@@ -7328,10 +7443,239 @@ const TABS = [
   ["rose", "Rose Engine", S.red],
   ["ref", "Reference", S.blue]
 ];
+let SEARCH_ANCHOR = null;
+const SEARCH_INDEX = [
+  ["Turning \u2014 speeds & feeds", "turn", "turn", "lathe rpm sfm surface speed cutting speed feed ipr mrr metal removal horsepower spindle power carbide hss insert coating lead angle"],
+  ["Turning speed tables", "turn", "turn", "reference sfm chart material speeds", "Reference \u2014 Turning Speed Tables (flood baseline)"],
+  ["Parting off", "turn", "part", "parting cut off cutoff part-off blade grooving width"],
+  ["Drilling \u2014 speeds & feeds", "drill", "feed", "drill rpm penetration feed twist drill peck drilling deep hole"],
+  ["Spot drill / chamfer depth", "drill", "spot", "spot drill spotting chamfer countersink depth"],
+  ["Drill point length", "drill", "point", "drill tip point length 118 135 point angle blind hole depth"],
+  ["Center drill", "drill", "center", "centre drill combined drill countersink lathe center hole sizes bs1 bs2"],
+  ["Counterbore", "drill", "cbore", "counterbore cbore counter bore socket head cap screw shcs pilot"],
+  ["Bolt clearance holes", "drill", "clear", "clearance hole close normal loose fit bolt screw tapping"],
+  ["End mill \u2014 speeds & feeds", "mill", "flat", "end mill endmill square rpm chip load table feed ipm mrr deflection stickout helix corner radius bull nose slotting chip thinning power"],
+  ["Ball-nose cutting \xD8", "mill", "ball", "ball nose ballnose effective diameter 3d contour"],
+  ["Chamfer mill", "mill", "chamfer", "chamfer mill engaged diameter angle 90 60 deburr"],
+  ["Dovetail \u2014 cut & measure", "mill", "dovetail", "dovetail measure over rods pins gib slide way"],
+  ["Scallop / stepover", "mill", "scallop", "scallop cusp height stepover surface finish ball nose"],
+  ["Slitting saw", "mill", "slit", "slitting saw slotting saw circular saw arbor teeth in cut screw slot slot screws cut off jeweler screw-slotting"],
+  ["Screw slots \u2014 saw & depth", "mill", "slit", "screw slot width depth slotted screw head pan head asme b18.6.3 iso 1580 slitting slotting saw thickness", "Screw Slots \u2014 Saw & Depth"],
+  ["Slitting saw speed table", "mill", "slit", "reference sfm chip load saw speeds", "Reference \u2014 Slitting Saw Speeds"],
+  ["Tapping \u2014 tap drill & speed", "tap", null, "tap drill size thread percentage engagement tapping speed unc unf metric tap lubricant"],
+  ["Single-point threading", "thread", "ext", "external thread cutting screwcutting lathe compound infeed 29.5 29 thread depth pitch diameter"],
+  ["Three-wire measurement", "thread", "ext", "three wire 3-wire 3 wire over wires pitch diameter thread measuring micrometer", "Three-Wire Measurement"],
+  ["Thread tool gauges", "thread", "ext", "fishtail center gauge centre gauge thread tool grinding 60", "Center / Fishtail Gauge \u2014 60\xB0 Threads"],
+  ["Acme threading", "thread", "ext", "acme trapezoidal tr leadscrew 29 multi-start square thread", "Acme Threading \u2014 Single-Point"],
+  ["Internal threading", "thread", "int", "internal thread bore boring bar plug gauge go no-go nut"],
+  ["Boring \u2014 speeds & feeds", "bore", "feed", "boring bar single point rpm feed"],
+  ["Boring head \u2014 dial to size", "bore", "head", "boring head dial radius diameter offset facing"],
+  ["Reaming", "ream", null, "reamer reaming stock allowance undersize drill rpm"],
+  ["Band saw blade selection", "saw", "select", "bandsaw band saw blade tpi teeth pitch tooth form set raker wavy hook variable pitch"],
+  ["Jeweler's saw / piercing saw", "saw", "jssaw", "jewelers piercing saw blade 2/0 4/0 8/0 sizes fret"],
+  ["Band speed & feed", "saw", "speed", "band speed sfm fpm feet per minute m/min chip reading"],
+  ["Bolt circle / bolt pattern", "math", "bolt", "bolt circle pcd pitch circle hole coordinates straight line pattern"],
+  ["Dividing head", "math", "divide", "indexing plate holes 40:1 index divisions rotary table"],
+  ["Hex / polygon", "math", "poly", "hexagon across flats across corners polygon sides octagon square"],
+  ["Right triangle", "math", "tri", "trig trigonometry hypotenuse angle sine cosine tangent"],
+  ["Gear ratio & torque", "math", "gear", "gear ratio torque mechanical advantage teeth pitch diameter module dp diametral wheel speed mph"],
+  ["Change gears / screwcutting", "math", "screwcut", "change gears screwcutting leadscrew gear train metric threads 127 quick change"],
+  ["Taper calculator", "math", "taper", "taper per foot tpf angle compound tailstock offset"],
+  ["Fits & tolerances", "math", "fits", "fits tolerance clearance h7 g6 iso fits limits"],
+  ["Shrink / interference fit", "math", "fits", "press fit shrink fit interference heat expansion", "Shrink / Interference Fit"],
+  ["Knurling diameter", "math", "knurl", "knurl knurling pitch tracking blank diameter"],
+  ["Surface finish", "math", "finish", "ra roughness nose radius feed finish rms microinch"],
+  ["Hardness conversion", "math", "hardness", "rockwell brinell vickers hrc hrb hb hv"],
+  ["Bar stock weight", "math", "weight", "weight mass bar round hex square tube kg lb density"],
+  ["Wire & sheet gauge", "math", "gauge", "awg swg bwg gauge sheet metal wire thickness"],
+  ["Length converter", "conv", "len", "units inch mm convert length thou micron"],
+  ["Area converter", "conv", "area", "units area square inch"],
+  ["Volume converter", "conv", "vol", "units volume litre gallon cc cubic"],
+  ["Mass converter", "conv", "wt", "units weight mass kg lb ounce gram"],
+  ["Force converter", "conv", "force", "units force newton lbf kgf"],
+  ["Pressure converter", "conv", "pr", "units pressure psi bar kpa mpa"],
+  ["Torque converter", "conv", "tq", "units torque ft-lb in-lb nm newton metre"],
+  ["Speed converter", "conv", "spd", "units speed sfm m/min mph"],
+  ["Flow converter", "conv", "flow", "units flow gpm litres per minute"],
+  ["Energy converter", "conv", "en", "units energy joule btu calorie"],
+  ["Power converter", "conv", "pw", "units power horsepower hp kw watt"],
+  ["Temperature converter", "conv", "tmp", "units temperature fahrenheit celsius kelvin"],
+  ["Surface gauge / height scriber", "layout", "plate", "surface plate height gauge scriber marking out layout"],
+  ["Sine bar & gauge blocks", "layout", "sine", "sine bar sine plate gauge blocks jo blocks angle setting"],
+  ["Gauge-block stack", "layout", "stack", "gauge block stack build combination wringing jo"],
+  ["Scale converter", "scale", "conv", "scale model ratio drawing railway gauge ho o gauge 1:12"],
+  ["Car model scales", "scale", "car", "diecast rc car scale"],
+  ["Aircraft model scales", "scale", "air", "plane aircraft kit scale"],
+  ["Boat model scales", "scale", "boat", "ship boat rc sailing scale"],
+  ["Thread concordance \u2014 identify a thread", "threads", "all", "identify unknown thread finder pitch gauge tpi 55 60 47.5 match"],
+  ["Unified threads (UNC / UNF)", "threads", "un", "unc unf unified american"],
+  ["ISO metric threads", "threads", "metric", "metric m3 m4 m6 coarse fine"],
+  ["Whitworth (BSW)", "threads", "bsw", "bsw whitworth british standard 55"],
+  ["British Fine (BSF)", "threads", "bsf", "bsf british fine"],
+  ["BS Brass (26 TPI)", "threads", "bsb", "bs brass 26 tpi lamp tube"],
+  ["Cycle threads (BSC / CEI)", "threads", "bsc", "cycle bicycle bsc cei 26 tpi"],
+  ["Pipe threads (BSPP / BSPT)", "threads", "bsp", "bsp bspp bspt british pipe"],
+  ["Pipe threads (NPT / NPS)", "threads", "npt", "npt nps american pipe tapered"],
+  ["British Association (BA)", "threads", "ba", "ba british association 0ba 2ba 4ba"],
+  ["Thury (horological)", "threads", "thury", "thury swiss clock watch horological"],
+  ["Model Engineer (ME)", "threads", "me", "me model engineer 32 tpi 40 tpi"],
+  ["Photographic & optical threads", "threads", "photo", "photographic optical tripod 1/4-20 3/8-16 filter lens rms microscope"],
+  ["Fastener torque", "threads", "all", "torque bolt tightening ft-lb nm grade", "Fastener Torque"],
+  ["Camera lens mounts", "threads", "all", "camera lens mount bayonet m42 leica flange focal", "Camera Lens Mounts"],
+  ["Rose engine pattern lab", "rose", null, "rose engine rosette ornamental turning guilloche phase amplitude pattern"],
+  ["Insert identifier & codes", "ref", "inserts", "insert carbide cnmg wnmg tnmg dcmt ccmt iso code identify decode grade coating"],
+  ["Tool holder chooser", "ref", "inserts", "tool holder chooser iso 5608 holder code", "Tool Chooser"],
+  ["Insert nose radius", "ref", "inserts", "nose radius finish insert", "Nose Radius"],
+  ["Lathe tool styles", "ref", "hss", "tool bit styles shapes lathe tool form"],
+  ["Drill sharpening", "ref", "drillpt", "drill point lip clearance web thinning chisel edge sharpen drill 118 135"],
+  ["Micrometer reading", "ref", "mic", "micrometer read thimble sleeve vernier measuring"],
+  ["Files", "ref", "files", "file bastard second cut smooth needle files cross section filing"],
+  ["Print symbols & GD&T", "ref", "prints", "drawing symbols gdt gd&t geometric tolerancing feature control frame blueprint"],
+  ["Loctite / threadlockers", "ref", "loctite", "loctite threadlocker retaining compound 222 242 243 262 271 290 609 638 blue red green purple"],
+  ["Model-engineering threads", "ref", "methreads", "me model engineer 32 tpi 40 tpi bsp whitworth"],
+  ["Silver solder / brazing", "ref", "solder", "silver solder brazing flux easy-flo hard solder"],
+  ["Steam tables", "ref", "steam", "saturated steam pressure temperature boiler psi"],
+  ["Hardness scales", "ref", "hardness", "rockwell brinell vickers file test hardness chart"],
+  ["Heat treatment", "ref", "heat", "harden hardening temper tempering quench o1 w1 a2 case hardening"],
+  ["Tempering colors", "ref", "heat", "temper colours colors straw blue oxide", "Tempering Colors (plain carbon steel)"],
+  ["Annealing non-ferrous", "ref", "heat", "anneal annealing brass copper silver aluminium soften", "Annealing Non-Ferrous Metals"],
+  ["Bench grinding", "ref", "grind", "grinding wheel grit dress bench grinder aluminum oxide green silicon carbide"],
+  ["Sharpening HSS tool bits", "ref", "grind", "sharpen hss tool bit relief rake", "Sharpening HSS Tool Bits"],
+  ["Morse tapers", "ref", "tapers", "morse taper mt1 mt2 mt3 mt4", "Morse Tapers"],
+  ["ER collets", "ref", "tapers", "er collet er11 er16 er20 er25 er32 din 6499", "ER Collets (DIN 6499)"],
+  ["5C collets", "ref", "tapers", "5c collet chart sizes", "5C Round Collets"],
+  ["Workholding tapers", "ref", "tapers", "r8 jacobs taper jt b taper nmtb", "Other Common Workholding Tapers"]
+];
+const SUB_LABEL = {
+  turn: { turn: "Turning", part: "Parting Off" },
+  drill: { feed: "Speeds & Feeds", spot: "Spot / Chamfer", point: "Drill Point", center: "Center Drill", cbore: "C'bore", clear: "Clearance" },
+  mill: { flat: "Square / End Mill", ball: "Ball Nose", chamfer: "Chamfer", dovetail: "Dovetail", scallop: "Scallop / Stepover", slit: "Slitting Saw" },
+  thread: { ext: "External", int: "Internal" },
+  bore: { feed: "Speeds & Feeds", head: "Boring Head" },
+  saw: { select: "Band Saw", jssaw: "Jeweler's Saw", speed: "Speeds & Feeds" },
+  math: { bolt: "Bolt Pattern", divide: "Dividing Head", poly: "Hex / Poly", tri: "Right Triangle", gear: "Gear Ratio", screwcut: "Change Gears", taper: "Taper", fits: "Fits & Tol.", knurl: "Knurling", finish: "Surface Finish", hardness: "Hardness", weight: "Bar Weight", gauge: "Wire / Sheet" },
+  layout: { plate: "Surface Plate", sine: "Sine & Gauge Blocks", stack: "Gauge Stack" },
+  scale: { conv: "Convert", car: "Cars", air: "Aircraft", boat: "Boats" },
+  ref: { inserts: "Inserts", hss: "Tool Styles", drillpt: "Drill Sharpening", mic: "Micrometer", files: "Files", prints: "Print Symbols", loctite: "Loctite", methreads: "Model Threads", solder: "Silver Solder", steam: "Steam", hardness: "Hardness", heat: "Heat Treat", grind: "Grinding", tapers: "Tapers & Collets" }
+};
+function normS(s) {
+  return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\u2018\u2019'"\u2032\u2033]/g, "").replace(/[^a-z0-9#./+-]+/g, " ").trim();
+}
+const SEARCH_PREP = SEARCH_INDEX.map((e) => {
+  const tl = (TABS.find((t) => t[0] === e[1]) || [, ""])[1];
+  return { e, lab: " " + normS(e[0]), hay: " " + normS(`${e[0]} ${tl} ${e[3]}`) };
+});
+function searchEntries(q) {
+  const toks = normS(q).split(" ").filter(Boolean);
+  if (!toks.length) return [];
+  const res = [];
+  SEARCH_PREP.forEach((p, i) => {
+    let score = 0;
+    for (const t of toks) {
+      const alts = [t];
+      if (t.length > 3 && t.endsWith("s")) alts.push(t.slice(0, -1));
+      if (t.length > 4 && t.endsWith("es")) alts.push(t.slice(0, -2));
+      let s = 0;
+      for (const a of alts) {
+        if (p.lab.includes(" " + a)) s = Math.max(s, 4);
+        else if (p.hay.includes(" " + a)) s = Math.max(s, 2);
+        else if (a.length >= 3 && p.hay.includes(a)) s = Math.max(s, 1);
+      }
+      if (!s) return;
+      score += s;
+    }
+    if (p.lab.startsWith(" " + toks.join(" "))) score += 3;
+    res.push([score, i, p.e]);
+  });
+  return res.sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, 14).map((r) => r[2]);
+}
+const SEARCH_HINTS = ["slitting saw", "tap drill", "5C collet", "Morse taper", "Loctite", "Whitworth", "three-wire", "knurl"];
+function SearchIcon({ color, size = 15 }) {
+  return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", "aria-hidden": "true", style: { display: "block" } }, /* @__PURE__ */ React.createElement("circle", { cx: 6.8, cy: 6.8, r: 4.8, fill: "none", stroke: color, strokeWidth: 1.8 }), /* @__PURE__ */ React.createElement("path", { d: "M10.4 10.4 L14.5 14.5", stroke: color, strokeWidth: 1.9, strokeLinecap: "round" }));
+}
+function SearchPanel({ open, q, setQ, onGo, onClose, inputRef }) {
+  const hits = useMemo(() => searchEntries(q), [q]);
+  const pathOf = (e) => {
+    const t = TABS.find((x) => x[0] === e[1]) || TABS[0];
+    const sl = SUB_LABEL[e[1]] && SUB_LABEL[e[1]][e[2]];
+    return [sl ? `${t[1]} \u203A ${sl}` : t[1], t[2]];
+  };
+  return /* @__PURE__ */ React.createElement("div", { style: open ? { maxWidth: 960, margin: "0 auto", padding: "0 14px 12px" } : { height: 0, overflow: "hidden", opacity: 0, pointerEvents: "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" } }, /* @__PURE__ */ React.createElement(SearchIcon, { color: S.mut })), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      ref: inputRef,
+      type: "search",
+      enterKeyHint: "go",
+      autoComplete: "off",
+      autoCorrect: "off",
+      autoCapitalize: "none",
+      spellCheck: false,
+      placeholder: "Search the bench\u2026",
+      "aria-label": "Search the app",
+      value: q,
+      onChange: (e) => setQ(e.target.value),
+      onKeyDown: (e) => {
+        if (e.key === "Escape") onClose();
+        if (e.key === "Enter" && hits.length) onGo(hits[0]);
+      },
+      style: { ...baseInput, fontFamily: F.body, fontSize: 16, padding: "10px 12px 10px 36px", borderColor: open ? S.blue : S.line2 }
+    }
+  )), /* @__PURE__ */ React.createElement("button", { onClick: onClose, "aria-label": "Close search", style: { padding: "9px 12px", borderRadius: 8, cursor: "pointer", border: `1px solid ${S.line2}`, background: "transparent", color: S.mut2, fontFamily: F.disp, fontWeight: 600, fontSize: "0.74rem", letterSpacing: "0.05em", whiteSpace: "nowrap" } }, "Close")), open && (q.trim() === "" ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: F.mono, fontSize: "0.66rem", color: S.mut, letterSpacing: "0.05em", marginRight: 2 } }, "try"), SEARCH_HINTS.map((h) => /* @__PURE__ */ React.createElement("button", { key: h, onClick: () => {
+    setQ(h);
+    if (inputRef.current) inputRef.current.focus();
+  }, style: { padding: "5px 10px", borderRadius: 7, cursor: "pointer", border: `1px solid ${S.line2}`, background: "transparent", color: S.mut2, fontFamily: F.body, fontSize: "0.74rem" } }, h))) : hits.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontFamily: F.body, fontSize: "0.8rem", color: S.mut2, lineHeight: 1.6 } }, "Nothing matches \u201c", q.trim(), "\u201d. Try one plain word \u2014 saw, collet, taper, thread.") : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, maxHeight: "min(60vh, 460px)", overflowY: "auto", WebkitOverflowScrolling: "touch", border: `1px solid ${S.line}`, borderRadius: 10, background: S.panel } }, hits.map((e, i) => {
+    const [sec, c] = pathOf(e);
+    return /* @__PURE__ */ React.createElement("button", { key: e[0], onClick: () => onGo(e), style: { display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "11px 14px", background: "transparent", border: "none", borderTop: i ? `1px solid ${S.line}` : "none", cursor: "pointer" } }, /* @__PURE__ */ React.createElement("span", { style: { width: 7, height: 7, borderRadius: 2, background: c, boxShadow: `0 0 8px ${c}`, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontFamily: F.body, fontWeight: 600, fontSize: "0.88rem", color: S.ink } }, e[0]), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontFamily: F.mono, fontSize: "0.64rem", color: S.mut, letterSpacing: "0.04em", marginTop: 2 } }, sec)));
+  }))));
+}
+function useNavSub(nav, set) {
+  useEffect(() => {
+    if (nav && nav.sub) set(nav.sub);
+  }, [nav]);
+}
 function App() {
   const [tab, setTab] = useState("turn");
   const [units2, setUnits] = useState("imp");
   const [navOpen, setNavOpen] = useState(true);
+  const [navTarget, setNavTarget] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const searchRef = useRef(null);
+  const headerRef = useRef(null);
+  const openSearch = () => {
+    setSearchOpen(true);
+    if (searchRef.current) searchRef.current.focus();
+  };
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQ("");
+    if (searchRef.current) searchRef.current.blur();
+  };
+  const goTo = (e) => {
+    SEARCH_ANCHOR = e[4] || null;
+    setTab(e[1]);
+    setNavTarget({ sub: e[2] || null, a: e[4] || null, n: Date.now() });
+    setNavOpen(false);
+    closeSearch();
+  };
+  useEffect(() => {
+    if (!navTarget) return;
+    const t = setTimeout(() => {
+      const a = navTarget.a;
+      let el = null;
+      if (a) {
+        window.dispatchEvent(new CustomEvent("mb-anchor", { detail: a }));
+        el = Array.from(document.querySelectorAll("[data-anchor]")).find((x) => x.getAttribute("data-anchor") === a) || null;
+      }
+      requestAnimationFrame(() => {
+        const hh = headerRef.current ? headerRef.current.offsetHeight : 0;
+        const y = el ? el.getBoundingClientRect().top + window.scrollY - hh - 12 : 0;
+        window.scrollTo({ top: Math.max(0, y), behavior: el ? "smooth" : "auto" });
+        SEARCH_ANCHOR = null;
+      });
+    }, 90);
+    return () => clearTimeout(t);
+  }, [navTarget]);
   const accent = (TABS.find((t) => t[0] === tab) || TABS[0])[2];
   return /* @__PURE__ */ React.createElement("div", { style: {
     minHeight: "100vh",
@@ -7349,7 +7693,7 @@ function App() {
         ::selection { background:${S.blue}55; }
         ::-webkit-scrollbar { height:9px; width:9px; }
         ::-webkit-scrollbar-thumb { background:${S.line2}; border-radius:6px; }
-      `), /* @__PURE__ */ React.createElement("header", { style: {
+      `), /* @__PURE__ */ React.createElement("header", { ref: headerRef, style: {
     position: "sticky",
     top: 0,
     zIndex: 30,
@@ -7386,7 +7730,7 @@ function App() {
     borderRadius: 20,
     padding: "1px 8px",
     letterSpacing: "0.06em"
-  } }, "v4.46")), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.64rem", color: S.mut, letterSpacing: "0.05em", marginTop: 1 } }, "speeds \xB7 feeds \xB7 shop reference"))), /* @__PURE__ */ React.createElement(
+  } }, "v4.47")), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.64rem", color: S.mut, letterSpacing: "0.05em", marginTop: 1 } }, "speeds \xB7 feeds \xB7 shop reference"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(
     Seg,
     {
       value: units2,
@@ -7395,7 +7739,21 @@ function App() {
       size: "sm",
       options: [["imp", "Imperial"], ["met", "Metric"]]
     }
-  )), /* @__PURE__ */ React.createElement("nav", { style: { maxWidth: 960, margin: "0 auto", padding: "0 14px 11px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" } }, navOpen ? /* @__PURE__ */ React.createElement(React.Fragment, null, TABS.map(([k, label, c], i) => {
+  ), /* @__PURE__ */ React.createElement("button", { onClick: () => searchOpen ? closeSearch() : openSearch(), "aria-label": "Search", "aria-expanded": searchOpen, style: {
+    display: "flex",
+    alignItems: "center",
+    gap: 7,
+    padding: "7px 12px",
+    borderRadius: 9,
+    cursor: "pointer",
+    border: `1px solid ${searchOpen ? accent : S.line2}`,
+    background: searchOpen ? accent + "1c" : S.inset,
+    color: searchOpen ? accent : S.mut2,
+    fontFamily: F.disp,
+    fontWeight: 600,
+    fontSize: "0.72rem",
+    letterSpacing: "0.05em"
+  } }, /* @__PURE__ */ React.createElement(SearchIcon, { color: searchOpen ? accent : S.mut2, size: 14 }), "Search"))), /* @__PURE__ */ React.createElement(SearchPanel, { open: searchOpen, q, setQ, onGo: goTo, onClose: closeSearch, inputRef: searchRef }), !searchOpen && /* @__PURE__ */ React.createElement("nav", { style: { maxWidth: 960, margin: "0 auto", padding: "0 14px 11px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" } }, navOpen ? /* @__PURE__ */ React.createElement(React.Fragment, null, TABS.map(([k, label, c], i) => {
     const on = tab === k;
     const sep = i === 8 || i === 12;
     return /* @__PURE__ */ React.createElement("span", { key: k, style: { display: "contents" } }, sep && /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true", style: { width: 1, alignSelf: "stretch", minHeight: 20, background: S.line2, opacity: 0.6, margin: "0 3px" } }), /* @__PURE__ */ React.createElement(
@@ -7403,6 +7761,7 @@ function App() {
       {
         onClick: () => {
           setTab(k);
+          setNavTarget(null);
           setNavOpen(false);
         },
         style: {
@@ -7479,7 +7838,7 @@ function App() {
       }
     },
     "\u25BE all sections"
-  )))), /* @__PURE__ */ React.createElement("main", { style: { maxWidth: 960, margin: "0 auto", padding: "22px 16px 60px" } }, tab === "turn" && /* @__PURE__ */ React.createElement(TurningSection, { units: units2 }), tab === "drill" && /* @__PURE__ */ React.createElement(DrillingSection, { units: units2 }), tab === "mill" && /* @__PURE__ */ React.createElement(MillingSection, { units: units2 }), tab === "tap" && /* @__PURE__ */ React.createElement(Tapping, { units: units2 }), tab === "thread" && /* @__PURE__ */ React.createElement(ThreadingSection, { units: units2 }), tab === "bore" && /* @__PURE__ */ React.createElement(BoringSection, { units: units2 }), tab === "ream" && /* @__PURE__ */ React.createElement(Reaming, { units: units2 }), tab === "saw" && /* @__PURE__ */ React.createElement(BandSawSection, { units: units2 }), tab === "conv" && /* @__PURE__ */ React.createElement(Converter, null), tab === "math" && /* @__PURE__ */ React.createElement(ShopMath, { units: units2 }), tab === "layout" && /* @__PURE__ */ React.createElement(LayoutSection, { units: units2 }), tab === "scale" && /* @__PURE__ */ React.createElement(ScaleSection, { units: units2 }), tab === "threads" && /* @__PURE__ */ React.createElement(ThreadFinder, { units: units2 }), tab === "rose" && /* @__PURE__ */ React.createElement(RoseEngine, null), tab === "ref" && /* @__PURE__ */ React.createElement(Reference, null)), /* @__PURE__ */ React.createElement("footer", { style: { borderTop: `1px solid ${S.line}`, padding: "18px 16px 30px", maxWidth: 960, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.66rem", color: S.mut, lineHeight: 1.7 } }, "Cutting data, thread geometry, and power constants follow standard machine-shop practice and are starting points, not guarantees \u2014 verify against your machine, tooling, and material, and ease in. Speeds assume sharp tools and adequate lubrication. Built for the home shop and the conservation bench.")));
+  )))), /* @__PURE__ */ React.createElement("main", { style: { maxWidth: 960, margin: "0 auto", padding: "22px 16px 60px" } }, tab === "turn" && /* @__PURE__ */ React.createElement(TurningSection, { units: units2, nav: navTarget }), tab === "drill" && /* @__PURE__ */ React.createElement(DrillingSection, { units: units2, nav: navTarget }), tab === "mill" && /* @__PURE__ */ React.createElement(MillingSection, { units: units2, nav: navTarget }), tab === "tap" && /* @__PURE__ */ React.createElement(Tapping, { units: units2 }), tab === "thread" && /* @__PURE__ */ React.createElement(ThreadingSection, { units: units2, nav: navTarget }), tab === "bore" && /* @__PURE__ */ React.createElement(BoringSection, { units: units2, nav: navTarget }), tab === "ream" && /* @__PURE__ */ React.createElement(Reaming, { units: units2 }), tab === "saw" && /* @__PURE__ */ React.createElement(BandSawSection, { units: units2, nav: navTarget }), tab === "conv" && /* @__PURE__ */ React.createElement(Converter, { nav: navTarget }), tab === "math" && /* @__PURE__ */ React.createElement(ShopMath, { units: units2, nav: navTarget }), tab === "layout" && /* @__PURE__ */ React.createElement(LayoutSection, { units: units2, nav: navTarget }), tab === "scale" && /* @__PURE__ */ React.createElement(ScaleSection, { units: units2, nav: navTarget }), tab === "threads" && /* @__PURE__ */ React.createElement(ThreadFinder, { units: units2, nav: navTarget }), tab === "rose" && /* @__PURE__ */ React.createElement(RoseEngine, null), tab === "ref" && /* @__PURE__ */ React.createElement(Reference, { nav: navTarget })), /* @__PURE__ */ React.createElement("footer", { style: { borderTop: `1px solid ${S.line}`, padding: "18px 16px 30px", maxWidth: 960, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: F.mono, fontSize: "0.66rem", color: S.mut, lineHeight: 1.7 } }, "Cutting data, thread geometry, and power constants follow standard machine-shop practice and are starting points, not guarantees \u2014 verify against your machine, tooling, and material, and ease in. Speeds assume sharp tools and adequate lubrication. Built for the home shop and the conservation bench.")));
 }
 
 var _el=document.getElementById('root');
